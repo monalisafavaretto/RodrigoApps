@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Type, Heart, Hash, Layers, Image as ImageIcon, Upload, Plus, Sparkles, 
-  Trash2, ArrowRight, FolderDown, RotateCcw, AlertCircle 
+  Trash2, ArrowRight, FolderDown, RotateCcw, AlertCircle, Calculator, BookOpen, Download, FileText
 } from 'lucide-react';
 import { LIBRARY_SHAPES, LibraryShape } from '../utils/shapeHelper';
 import FrameCreator from './FrameCreator';
@@ -48,8 +48,42 @@ export default function SidebarMoldes({
   onDeleteUpload,
   onAddCustomMold,
 }: SidebarMoldesProps) {
-  const [activeTab, setActiveTab] = useState<'moldes' | 'textos' | 'letras' | 'uploads' | 'meus-moldes'>('moldes');
+  const [activeTab, setActiveTab] = useState<'moldes' | 'textos' | 'letras' | 'uploads' | 'meus-moldes' | 'calculadora' | 'pack-imagens' | 'pdf-cursos'>('moldes');
   
+  // Calculator states
+  const [calcMode, setCalcMode] = useState<'medidas' | 'gramas'>('medidas');
+  const [pieceShape, setPieceShape] = useState<'rect' | 'circle'>('rect');
+  const [rectWidth, setRectWidth] = useState<number>(10);
+  const [rectLength, setRectLength] = useState<number>(10);
+  const [rectHeight, setRectHeight] = useState<number>(1); // cm
+  const [circleDiameter, setCircleDiameter] = useState<number>(10);
+  const [circleHeight, setCircleHeight] = useState<number>(1); // cm
+  const [totalGrams, setTotalGrams] = useState<number>(12);
+
+  // DB Fetched items for Pack de Imagens and courses/apostilas
+  const [packImages, setPackImages] = useState<{ id: string; name: string; url: string; createdAt: string }[]>([]);
+  const [pdfCourses, setPdfCourses] = useState<{ id: string; name: string; url: string; createdAt: string }[]>([]);
+
+  useEffect(() => {
+    fetch('/api/pack-images')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setPackImages(data.packImages || []);
+        }
+      })
+      .catch(err => console.error("Error loading image packs:", err));
+
+    fetch('/api/pdf-courses')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setPdfCourses(data.pdfCourses || []);
+        }
+      })
+      .catch(err => console.error("Error loading PDF courses:", err));
+  }, [activeTab]); // Refetch when tabs change to always stay updated
+
   // Categorized shapes
   const categories = Array.from(new Set(LIBRARY_SHAPES.map(s => s.category)));
   const [selectedCategory, setSelectedCategory] = useState<string>('Formatos Geométricos');
@@ -164,6 +198,39 @@ export default function SidebarMoldes({
         >
           <Layers className="w-3.5 h-3.5 text-indigo-505" />
           Meus Moldes Salvos
+        </button>
+
+        <div className="border-t border-zinc-200 my-1"></div>
+
+        <button
+          onClick={() => setActiveTab('pack-imagens')}
+          className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
+            activeTab === 'pack-imagens' ? 'bg-indigo-600 text-white font-extrabold shadow-md' : 'text-zinc-650 hover:text-indigo-600 hover:bg-zinc-100'
+          }`}
+        >
+          <ImageIcon className="w-3.5 h-3.5" />
+          <span>Pack de Imagens</span>
+          <span className={`ml-auto text-[9px] px-1 py-0.5 rounded ${activeTab === 'pack-imagens' ? 'bg-indigo-550 text-white' : 'bg-indigo-100 text-indigo-600'}`}>HD</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('pdf-cursos')}
+          className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
+            activeTab === 'pdf-cursos' ? 'bg-indigo-600 text-white font-extrabold shadow-md' : 'text-zinc-650 hover:text-indigo-600 hover:bg-zinc-100'
+          }`}
+        >
+          <BookOpen className="w-3.5 h-3.5" />
+          <span>Apostilas / Cursos</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('calculadora')}
+          className={`px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
+            activeTab === 'calculadora' ? 'bg-amber-600 text-white font-extrabold shadow-md' : 'bg-amber-50 hover:bg-amber-100 text-amber-805 text-amber-800 border border-amber-200'
+          }`}
+        >
+          <Calculator className="w-3.5 h-3.5" />
+          <span>Calculadora de Resina</span>
         </button>
       </div>
 
@@ -505,6 +572,318 @@ export default function SidebarMoldes({
             <div className="pt-4 border-t border-zinc-200 mt-6">
               <FrameCreator onAddCustomMold={onAddCustomMold} />
             </div>
+          </div>
+        )}
+
+        {/* TAB 6: PACK DE IMAGENS */}
+        {activeTab === 'pack-imagens' && (
+          <div className="space-y-4" id="pane-pack-imagens">
+            <span className="block text-[10px] uppercase font-bold tracking-wider text-zinc-500 mb-1">Pack de Imagens Premium</span>
+            <p className="text-[10px] text-zinc-500 leading-relaxed pb-1">
+              Escolha entre o acervo exclusivo de imagens em alta definição fornecido pela administração. Clique em "Usar no Editor" para carregar ou faça o download de forma avulsa.
+            </p>
+
+            <div className="grid grid-cols-1 gap-4 select-none" id="pack-images-sidebar-list">
+              {packImages.length === 0 ? (
+                <div className="p-8 text-center text-zinc-400 bg-zinc-50 rounded-lg border border-zinc-200 font-mono text-[10px]">
+                  Sem imagens no pacote no momento.
+                </div>
+              ) : (
+                packImages.map((img) => (
+                  <div
+                    key={img.id}
+                    className="group bg-white border border-zinc-200 hover:border-indigo-500 rounded-xl p-3 flex flex-col gap-2.5 transition-all text-left relative"
+                  >
+                    <img 
+                      src={img.url} 
+                      alt={img.name} 
+                      className="w-full h-36 object-cover rounded-lg bg-[#f9fafb] border border-zinc-100" 
+                      referrerPolicy="no-referrer"
+                    />
+                    
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-black text-zinc-800 truncate">{img.name}</h4>
+                      <p className="text-[9px] text-zinc-400 font-mono mt-0.5">Disponibilizado para sua conta</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      <button
+                        onClick={() => {
+                          onUploadImage(img.url);
+                        }}
+                        className="py-1.5 px-2 bg-indigo-600 hover:bg-indigo-550 text-white rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer flex items-center justify-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        Usar no Editor
+                      </button>
+
+                      <a
+                        href={img.url}
+                        download={`pack-image-${img.id}.png`}
+                        className="py-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-750 rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer flex items-center justify-center gap-1 border border-zinc-200"
+                      >
+                        <Download className="w-3 h-3" />
+                        Baixar HD
+                      </a>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 7: APOSTILAS / CURSOS */}
+        {activeTab === 'pdf-cursos' && (
+          <div className="space-y-4" id="pane-pdf-cursos">
+            <span className="block text-[10px] uppercase font-bold tracking-wider text-zinc-500 mb-1">Apostilas & Treinamentos</span>
+            <p className="text-[10px] text-zinc-500 leading-relaxed pb-1">
+              Conteúdos didáticos, materiais de apoio e e-books exclusivos liberados pela administração para apoiar a sua produção profissional:
+            </p>
+
+            <div className="space-y-3" id="pdf-courses-sidebar-list">
+              {pdfCourses.length === 0 ? (
+                <div className="p-8 text-center text-zinc-400 bg-zinc-50 rounded-lg border border-zinc-200 font-mono text-[10px]">
+                  Nenhuma apostila disponível para download no momento.
+                </div>
+              ) : (
+                pdfCourses.map((pdf) => (
+                  <div
+                    key={pdf.id}
+                    className="bg-white border border-zinc-200 rounded-xl p-3 flex flex-col gap-2 relative hover:border-indigo-400 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-red-50 border border-red-100 rounded-lg text-red-505 text-red-500 flex items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0 pr-2">
+                        <h4 className="text-xs font-black text-zinc-800 truncate" title={pdf.name}>{pdf.name}</h4>
+                        <p className="text-[9px] text-[#22c55e] font-mono mt-0.5 font-bold uppercase tracking-wider">Download Liberado</p>
+                      </div>
+                    </div>
+
+                    <a
+                      href={pdf.url}
+                      download={`${pdf.name}.pdf`}
+                      className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-550 text-white rounded-lg text-[10px] font-bold transition-all text-center cursor-pointer flex items-center justify-center gap-1"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Baixar Apostila (PDF)
+                    </a>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 8: CALCULADORA DE RESINA */}
+        {activeTab === 'calculadora' && (
+          <div className="space-y-4 text-left font-sans" id="pane-calculadora">
+            <span className="block text-[10px] uppercase font-bold tracking-wider text-zinc-500 mb-1">Cálculo de Proporção (Regra 100/50)</span>
+            
+            <p className="text-[10px] text-zinc-500 leading-relaxed pb-1">
+              Calcule as quantidades exatas de Resina e Endurecedor para sua peça. Nosso sistema utiliza as proporções para evitar desperdício de material.
+            </p>
+
+            {/* Calculated Screen LCD Header component */}
+            <div className="bg-zinc-950 border border-zinc-850 rounded-xl p-3.5 text-white flex flex-col gap-3 shadow-inner relative overflow-hidden">
+              <div className="absolute top-1.5 right-2 font-mono text-[8px] text-zinc-650 flex items-center gap-1 select-none font-bold">
+                <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></div>
+                SYSTEM RESINA-CALC
+              </div>
+
+              {/* Liquid crystal display panel */}
+              <div className="bg-[#a3b899] text-zinc-900 font-mono p-3 rounded-lg text-right select-all shadow-inner border border-zinc-800 flex flex-col justify-between h-18 mt-1.5">
+                <span className="text-[9px] text-zinc-800 uppercase tracking-widest leading-none font-bold">Massa de Resina + Catalisador (Total)</span>
+                <span className="text-xl font-black tracking-tight leading-none text-zinc-[950] font-sans">
+                  {calcMode === 'medidas' ? (
+                    (() => {
+                      const vol = pieceShape === 'rect' 
+                        ? (rectWidth * rectLength * rectHeight) 
+                        : (Math.PI * Math.pow(circleDiameter / 2, 2) * circleHeight);
+                      return `${vol.toFixed(1)} ml`;
+                    })()
+                  ) : (
+                    `${totalGrams.toFixed(1)} g`
+                  )}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3.5 text-center mt-1">
+                <div className="bg-zinc-900/50 rounded-lg p-2.5 border border-zinc-850">
+                  <span className="text-[8px] text-zinc-500 uppercase font-bold tracking-wider">Massa Base Resina (2/3)</span>
+                  <p className="text-sm font-bold text-sky-400 font-mono mt-1">
+                    {calcMode === 'medidas' ? (
+                      (() => {
+                        const vol = pieceShape === 'rect' 
+                          ? (rectWidth * rectLength * rectHeight) 
+                          : (Math.PI * Math.pow(circleDiameter / 2, 2) * circleHeight);
+                        return `${(vol * (100 / 150)).toFixed(1)} ml`;
+                      })()
+                    ) : (
+                      `${(totalGrams * (100 / 150)).toFixed(1)} g`
+                    )}
+                  </p>
+                </div>
+
+                <div className="bg-zinc-900/50 rounded-lg p-2.5 border border-zinc-850 hover:border-amber-900/20 transition-all">
+                  <span className="text-[8px] text-zinc-500 uppercase font-bold tracking-wider">Endurecedor (1/3)</span>
+                  <p className="text-sm font-bold text-amber-500 font-mono mt-1">
+                    {calcMode === 'medidas' ? (
+                      (() => {
+                        const vol = pieceShape === 'rect' 
+                          ? (rectWidth * rectLength * rectHeight) 
+                          : (Math.PI * Math.pow(circleDiameter / 2, 2) * circleHeight);
+                        return `${(vol * (50 / 150)).toFixed(1)} ml`;
+                      })()
+                    ) : (
+                      `${(totalGrams * (50 / 150)).toFixed(1)} g`
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Selector methods */}
+            <div className="flex bg-zinc-100 p-1 rounded-lg border border-zinc-200">
+              <button
+                type="button"
+                onClick={() => setCalcMode('medidas')}
+                className={`flex-1 py-1.5 px-2.5 rounded-md text-[10px] font-bold text-center cursor-pointer transition-colors ${calcMode === 'medidas' ? 'bg-white text-indigo-600 shadow-xs' : 'text-zinc-600 hover:text-indigo-650'}`}
+              >
+                Medidas da Peça (ml)
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalcMode('gramas')}
+                className={`flex-1 py-1.5 px-2.5 rounded-md text-[10px] font-bold text-center cursor-pointer transition-colors ${calcMode === 'gramas' ? 'bg-white text-indigo-600 shadow-xs' : 'text-zinc-600 hover:text-indigo-650'}`}
+              >
+                Peso Direto (g)
+              </button>
+            </div>
+
+            {/* Form Inputs based on calcMode */}
+            {calcMode === 'medidas' ? (
+              <div className="space-y-3 bg-zinc-50 p-3.5 rounded-xl border border-zinc-200 text-left">
+                <span className="block text-[9px] uppercase font-mono font-bold text-zinc-500">Tipo de Forma / Molde</span>
+                
+                <div className="grid grid-cols-2 gap-2 pb-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPieceShape('rect')}
+                    className={`py-1 rounded text-[9px] font-bold text-center cursor-pointer ${pieceShape === 'rect' ? 'bg-indigo-600 border border-indigo-700 text-white shadow-xs' : 'bg-white border border-zinc-200 text-zinc-600'}`}
+                  >
+                    Quadrado / Retangular
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPieceShape('circle')}
+                    className={`py-1 rounded text-[9px] font-bold text-center cursor-pointer ${pieceShape === 'circle' ? 'bg-indigo-600 border border-indigo-700 text-white shadow-xs' : 'bg-white border border-zinc-200 text-zinc-600'}`}
+                  >
+                    Redondo / Molde Redond
+                  </button>
+                </div>
+
+                {pieceShape === 'rect' ? (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[9px] font-mono text-zinc-500 mb-1">Largura (cm)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          className="w-full bg-white border border-zinc-200 rounded-lg p-2 text-xs outline-none text-zinc-700 font-mono text-center font-bold"
+                          value={rectWidth}
+                          onChange={(e) => setRectWidth(Math.max(0.1, Number(e.target.value)))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-mono text-zinc-500 mb-1">Comprimento (cm)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          className="w-full bg-white border border-zinc-200 rounded-lg p-2 text-xs outline-none text-zinc-700 font-mono text-center font-bold"
+                          value={rectLength}
+                          onChange={(e) => setRectLength(Math.max(0.1, Number(e.target.value)))}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-mono text-zinc-500 mb-1">Grossura / Espessura (cm)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        className="w-full bg-white border border-zinc-200 rounded-lg p-2 text-xs outline-none text-zinc-700 font-mono text-center font-bold"
+                        value={rectHeight}
+                        onChange={(e) => setRectHeight(Math.max(0.1, Number(e.target.value)))}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-[9px] font-mono text-zinc-500 mb-1">Diâmetro Total (cm)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        className="w-full bg-white border border-zinc-200 rounded-lg p-2 text-xs outline-none text-zinc-700 font-mono text-center font-bold"
+                        value={circleDiameter}
+                        onChange={(e) => setCircleDiameter(Math.max(0.1, Number(e.target.value)))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-mono text-zinc-500 mb-1">Grossura / Espessura (cm)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        className="w-full bg-white border border-zinc-200 rounded-lg p-2 text-xs outline-none text-zinc-700 font-mono text-center font-bold"
+                        value={circleHeight}
+                        onChange={(e) => setCircleHeight(Math.max(0.1, Number(e.target.value)))}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3 bg-zinc-50 p-3.5 rounded-xl border border-zinc-200 text-left">
+                <div>
+                  <label className="block text-[10px] font-mono uppercase font-black text-zinc-500 mb-1">Quantidade de Gramas Adutoras</label>
+                  <p className="text-[9px] text-zinc-500 mb-2 leading-relaxed">Você vai pesar a resina na balança? Insira as gramas totais desejadas:</p>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="1"
+                      className="flex-1 bg-white border border-zinc-200 rounded-lg p-2.5 text-xs outline-none text-zinc-700 font-mono text-center font-bold"
+                      value={totalGrams}
+                      onChange={(e) => setTotalGrams(Math.max(1, Number(e.target.value)))}
+                    />
+                    <span className="text-xs font-mono font-bold text-zinc-500 bg-zinc-150 px-3 py-2 px-3 rounded-lg border border-zinc-200">g</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Dica / Amber Rule Tip section */}
+            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-start gap-2 text-left">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="block text-[10px] font-black uppercase tracking-wider text-amber-900">Importante</span>
+                <p className="text-[10px] text-amber-850 mt-0.5 leading-relaxed font-semibold">
+                  Primeiro coloque sempre a resina e depois o endurecedor. Misture devagar em movimentos circulares para evitar bolhas.
+                </p>
+              </div>
+            </div>
+            
+            <p className="text-[9px] text-center text-zinc-400 pt-1 font-mono leading-relaxed">
+              *Proporção padrão calculada: 100g de Resina para 50g de Endurecedor (Proporção 2:1).
+            </p>
           </div>
         )}
 
