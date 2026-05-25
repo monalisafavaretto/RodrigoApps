@@ -33,6 +33,8 @@ interface SidebarMoldesProps {
   onDeleteImageFromPack: (id: string) => Promise<void>;
   onAddCoursePDF: (name: string, url: string, size?: string) => Promise<void>;
   onDeleteCoursePDF: (id: string) => Promise<void>;
+  driveLinks: string[];
+  onSaveDriveLinks: (links: string[]) => Promise<void>;
 }
 
 const FONTS_LIST = [
@@ -64,8 +66,28 @@ export default function SidebarMoldes({
   onDeleteImageFromPack,
   onAddCoursePDF,
   onDeleteCoursePDF,
+  driveLinks,
+  onSaveDriveLinks,
 }: SidebarMoldesProps) {
-  const [activeTab, setActiveTab] = useState<'moldes' | 'textos' | 'letras' | 'uploads' | 'meus-moldes' | 'calculadora' | 'pack-imagens' | 'cursos'>('moldes');
+  const [activeTab, setActiveTab] = useState<'letras' | 'moldes' | 'textos' | 'uploads' | 'meus-moldes' | 'calculadora' | 'pack-imagens' | 'cursos'>('letras');
+  
+  // Google Drive configured links states
+  const [link1, setLink1] = useState('');
+  const [link2, setLink2] = useState('');
+  const [link3, setLink3] = useState('');
+  const [link4, setLink4] = useState('');
+  const [link5, setLink5] = useState('');
+  const [isSavingLinks, setIsSavingLinks] = useState(false);
+
+  React.useEffect(() => {
+    if (driveLinks && driveLinks.length > 0) {
+      setLink1(driveLinks[0] || '');
+      setLink2(driveLinks[1] || '');
+      setLink3(driveLinks[2] || '');
+      setLink4(driveLinks[3] || '');
+      setLink5(driveLinks[4] || '');
+    }
+  }, [driveLinks]);
   
   // Categorized shapes
   const categories = Array.from(new Set(LIBRARY_SHAPES.map(s => s.category)));
@@ -163,19 +185,9 @@ export default function SidebarMoldes({
       {/* Category Tabs */}
       <div className="flex flex-col bg-zinc-50 p-2.5 border-b border-zinc-200 shrink-0 gap-1.5" id="sidebar-tabs">
         <button
-          onClick={() => setActiveTab('moldes')}
-          className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
-            activeTab === 'moldes' ? 'bg-white text-indigo-600 font-bold border border-zinc-205 shadow-xs' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
-          }`}
-        >
-          <Heart className="w-3.5 h-3.5 text-indigo-505" />
-          Formatos e Moldes
-        </button>
-
-        <button
           onClick={() => setActiveTab('letras')}
           className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
-            activeTab === 'letras' ? 'bg-white text-indigo-600 font-bold border border-zinc-205 shadow-xs' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
+            activeTab === 'letras' ? 'bg-white text-indigo-650 font-bold border border-zinc-205 shadow-xs' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
           }`}
         >
           <Hash className="w-3.5 h-3.5 text-indigo-505" />
@@ -183,9 +195,19 @@ export default function SidebarMoldes({
         </button>
 
         <button
+          onClick={() => setActiveTab('moldes')}
+          className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
+            activeTab === 'moldes' ? 'bg-white text-indigo-650 font-bold border border-zinc-205 shadow-xs' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
+          }`}
+        >
+          <Heart className="w-3.5 h-3.5 text-indigo-505" />
+          Formatos e Moldes
+        </button>
+
+        <button
           onClick={() => setActiveTab('textos')}
           className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
-            activeTab === 'textos' ? 'bg-white text-indigo-600 font-bold border border-zinc-205 shadow-xs' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
+            activeTab === 'textos' ? 'bg-white text-indigo-650 font-bold border border-zinc-205 shadow-xs' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
           }`}
         >
           <Type className="w-3.5 h-3.5 text-indigo-505" />
@@ -200,7 +222,7 @@ export default function SidebarMoldes({
               : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-xs'
           }`}
         >
-          <Upload className={`w-3.5 h-3.5 ${activeTab === 'uploads' ? 'text-white' : 'text-emerald-605 text-emerald-600'}`} />
+          <Upload className={`w-3.5 h-3.5 ${activeTab === 'uploads' ? 'text-white' : 'text-emerald-600'}`} />
           <span>Fotos / Upload de Estampas</span>
           <span className={`absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full ${activeTab === 'uploads' ? 'bg-white' : 'bg-emerald-500 animate-ping'}`} />
         </button>
@@ -208,45 +230,59 @@ export default function SidebarMoldes({
         <button
           onClick={() => setActiveTab('meus-moldes')}
           className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
-            activeTab === 'meus-moldes' ? 'bg-white text-indigo-600 font-bold border border-zinc-205 shadow-xs' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
+            activeTab === 'meus-moldes' ? 'bg-white text-indigo-650 font-bold border border-zinc-205 shadow-xs' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
           }`}
         >
           <Layers className="w-3.5 h-3.5 text-indigo-505" />
           Meus Moldes Salvos
         </button>
 
-        {/* New Calculator Tab */}
-        <button
-          onClick={() => setActiveTab('calculadora')}
-          className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
-            activeTab === 'calculadora' ? 'bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
-          }`}
-        >
-          <Calculator className="w-3.5 h-3.5 text-teal-605" />
-          Calculadora de Resina
-        </button>
+        {/* Grouped support modules (Discreto e Meio Juntos) */}
+        <div className="mt-1.5 pt-2 border-t border-zinc-200">
+          <div className="px-1 mb-1 text-[8.5px] font-bold text-zinc-400 uppercase tracking-widest text-center">
+            Apoio & Utilitários
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            <button
+              onClick={() => setActiveTab('calculadora')}
+              className={`py-1.5 px-0.5 rounded-lg text-[9px] font-bold flex flex-col items-center justify-center gap-1 transition-all border text-center cursor-pointer ${
+                activeTab === 'calculadora' 
+                  ? 'bg-teal-50 text-teal-800 border-teal-200' 
+                  : 'bg-zinc-100 text-zinc-550 border-zinc-200 hover:bg-zinc-200 hover:text-indigo-650'
+              }`}
+              title="Calculadora de Resina"
+            >
+              <Calculator className="w-3.5 h-3.5 text-teal-600" />
+              <span className="truncate w-full font-sans">Calculadora</span>
+            </button>
 
-        {/* New Premium Image Pack Tab */}
-        <button
-          onClick={() => setActiveTab('pack-imagens')}
-          className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
-            activeTab === 'pack-imagens' ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-805 border border-indigo-200' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
-          }`}
-        >
-          <Library className="w-3.5 h-3.5 text-indigo-505" />
-          Pack de Imagens Premium
-        </button>
+            <button
+              onClick={() => setActiveTab('pack-imagens')}
+              className={`py-1.5 px-0.5 rounded-lg text-[9px] font-bold flex flex-col items-center justify-center gap-1 transition-all border text-center cursor-pointer ${
+                activeTab === 'pack-imagens' 
+                  ? 'bg-indigo-50 text-indigo-805 border-indigo-200' 
+                  : 'bg-zinc-100 text-zinc-550 border-zinc-200 hover:bg-zinc-200 hover:text-indigo-650'
+              }`}
+              title="Packs de Imagens Drive"
+            >
+              <Library className="w-3.5 h-3.5 text-indigo-605" />
+              <span className="truncate w-full font-sans">Packs Drive</span>
+            </button>
 
-        {/* New Courses/Handouts PDF Tab */}
-        <button
-          onClick={() => setActiveTab('cursos')}
-          className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
-            activeTab === 'cursos' ? 'bg-amber-50 hover:bg-amber-100 text-amber-805 border border-amber-200' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
-          }`}
-        >
-          <BookOpen className="w-3.5 h-3.5 text-amber-605" />
-          Cursos e Apostilas (PDF)
-        </button>
+            <button
+              onClick={() => setActiveTab('cursos')}
+              className={`py-1.5 px-0.5 rounded-lg text-[9px] font-bold flex flex-col items-center justify-center gap-1 transition-all border text-center cursor-pointer ${
+                activeTab === 'cursos' 
+                  ? 'bg-amber-50 text-amber-805 border-amber-250' 
+                  : 'bg-zinc-100 text-zinc-550 border-zinc-200 hover:bg-zinc-200 hover:text-indigo-650'
+              }`}
+              title="Apostilas e Manuais PDF"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-600" />
+              <span className="truncate w-full font-sans">Apostilas</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Pane Content */}
@@ -582,8 +618,7 @@ export default function SidebarMoldes({
                 ))}
               </div>
             )}
-
-            {/* HIGH PROFILE HIGHLIGHTED CUSTOM MOLD MAKER EMBED */}
+                    {/* HIGH PROFILE HIGHLIGHTED CUSTOM MOLD MAKER EMBED */}
             <div className="pt-4 border-t border-zinc-200 mt-6">
               <FrameCreator onAddCustomMold={onAddCustomMold} />
             </div>
@@ -598,22 +633,22 @@ export default function SidebarMoldes({
               Calcule as quantidades exatas baseando-se na regra de proporção <strong>100:50</strong> (2 partes de resina para 1 parte de endurecedor).
             </p>
 
-            {/* Glass-style Interactive Digital Calculator Tool */}
-            <div className="bg-zinc-900 border border-zinc-800 text-emerald-400 p-4 rounded-2xl font-mono text-center shadow-lg relative overflow-hidden select-none">
+            {/* Clean-style Interactive Digital Calculator Tool */}
+            <div className="bg-emerald-50/60 border border-emerald-100 text-emerald-950 p-4 rounded-2xl font-mono text-center shadow-xs relative overflow-hidden select-none">
               {/* Internal decorative elements to look like a screen */}
-              <div className="absolute top-2 right-3 text-[7px] text-zinc-600 uppercase tracking-widest font-sans">REGRA 100g / 50g</div>
-              <div className="text-[8px] text-zinc-500 uppercase text-left tracking-wider mb-1 font-sans">Mistura Estimada Total:</div>
-              <div className="text-3xl font-extrabold tracking-tight bg-zinc-950 border border-zinc-800 p-3 rounded-xl w-full mb-3 text-right text-emerald-400 shadow-inner">
-                {Number(calcTotal).toFixed(1)} <span className="text-xs text-zinc-500 font-sans">g</span>
+              <div className="absolute top-2 right-3 text-[7.5px] text-emerald-600 uppercase tracking-widest font-sans font-extrabold pb-1">FÓRMULA 100g / 50g</div>
+              <div className="text-[9px] text-emerald-700 uppercase text-left font-bold tracking-wider mb-1 font-sans">Mistura Total Estimada:</div>
+              <div className="text-3xl font-black tracking-tight bg-white border border-emerald-250 p-3 rounded-xl w-full mb-3 text-right text-emerald-700 shadow-sm">
+                {Number(calcTotal).toFixed(1)} <span className="text-xs text-emerald-500 font-sans">g</span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-left font-sans">
-                <div className="p-2.5 bg-zinc-950 rounded-xl border border-zinc-850">
-                  <div className="text-zinc-500 text-[8px] uppercase tracking-wider font-bold">Resina (100)</div>
-                  <div className="text-emerald-300 font-extrabold text-sm mt-0.5">{Number(calcResina).toFixed(1)} g</div>
+                <div className="p-2.5 bg-white rounded-xl border border-emerald-150 shadow-xs">
+                  <div className="text-emerald-600 text-[8.5px] uppercase tracking-wider font-bold">Resina (g)</div>
+                  <div className="text-emerald-700 font-extrabold text-base mt-0.5">{Number(calcResina).toFixed(1)}g</div>
                 </div>
-                <div className="p-2.5 bg-zinc-950 rounded-xl border border-zinc-850">
-                  <div className="text-zinc-500 text-[8px] uppercase tracking-wider font-bold">Endurecedor (50)</div>
-                  <div className="text-teal-300 font-extrabold text-sm mt-0.5">{Number(calcEndurecedor).toFixed(1)} g</div>
+                <div className="p-2.5 bg-white rounded-xl border border-teal-150 shadow-xs">
+                  <div className="text-teal-605 text-teal-650 text-[8.5px] uppercase tracking-wider font-bold text-teal-750">Endurecedor (g)</div>
+                  <div className="text-teal-650 text-teal-700 font-extrabold text-base mt-0.5">{Number(calcEndurecedor).toFixed(1)}g</div>
                 </div>
               </div>
             </div>
@@ -624,7 +659,7 @@ export default function SidebarMoldes({
                 <button
                   onClick={() => setCalcMode('weight')}
                   className={`flex-1 text-[10px] py-1.5 font-bold rounded-lg cursor-pointer transition-all ${
-                    calcMode === 'weight' ? 'bg-white text-indigo-650 shadow font-bold' : 'text-zinc-500 hover:text-zinc-800'
+                    calcMode === 'weight' ? 'bg-white text-indigo-650 shadow font-bold' : 'text-zinc-550 hover:text-zinc-800'
                   }`}
                 >
                   Por Peso Total
@@ -632,7 +667,7 @@ export default function SidebarMoldes({
                 <button
                   onClick={() => setCalcMode('dimensions')}
                   className={`flex-1 text-[10px] py-1.5 font-bold rounded-lg cursor-pointer transition-all ${
-                    calcMode === 'dimensions' ? 'bg-white text-indigo-650 shadow font-bold' : 'text-zinc-500 hover:text-zinc-800'
+                    calcMode === 'dimensions' ? 'bg-white text-indigo-650 shadow font-bold' : 'text-zinc-550 hover:text-zinc-800'
                   }`}
                 >
                   Por Tamanho da Peça
@@ -640,13 +675,13 @@ export default function SidebarMoldes({
               </div>
 
               {calcMode === 'weight' ? (
-                <div className="bg-zinc-50 p-3 border border-zinc-200 rounded-xl">
-                  <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Insira o Peso Total Desejado (Gramos):</label>
+                <div className="bg-zinc-50 p-3 border border-zinc-250 rounded-xl">
+                  <label className="block text-[8.5px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Insira o Peso Total Desejado (Gramos):</label>
                   <div className="relative">
                     <input
                       type="number"
                       min="1"
-                      className="w-full bg-white border border-zinc-200 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-zinc-800 font-bold outline-none"
+                      className="w-full bg-white border border-zinc-200 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-zinc-850 font-bold outline-none"
                       value={calcWeightInput || ''}
                       onChange={(e) => setCalcWeightInput(Math.max(0, parseFloat(e.target.value) || 0))}
                       placeholder="Ex: 12"
@@ -656,14 +691,14 @@ export default function SidebarMoldes({
                   <span className="block text-[9px] text-zinc-450 mt-1.5">Estime o peso total baseado na peça inteira (ex: chaveiro tem 12g).</span>
                 </div>
               ) : (
-                <div className="space-y-2.5 bg-zinc-50 p-3 border border-zinc-200 rounded-xl">
+                <div className="space-y-2.5 bg-zinc-50 p-3 border border-zinc-250 rounded-xl">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-[8px] font-bold text-zinc-505 uppercase tracking-wider mb-1">Largura (mm)</label>
                       <input
                         type="number"
                         min="1"
-                        className="w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs text-zinc-805"
+                        className="w-full bg-white border border-zinc-205 rounded-lg px-2 py-1 text-xs text-zinc-805"
                         value={calcWidth || ''}
                         onChange={(e) => setCalcWidth(Math.max(0, parseFloat(e.target.value) || 0))}
                         placeholder="Largura em mm"
@@ -674,7 +709,7 @@ export default function SidebarMoldes({
                       <input
                         type="number"
                         min="1"
-                        className="w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs text-zinc-805"
+                        className="w-full bg-white border border-zinc-205 rounded-lg px-2 py-1 text-xs text-zinc-805"
                         value={calcHeight || ''}
                         onChange={(e) => setCalcHeight(Math.max(0, parseFloat(e.target.value) || 0))}
                         placeholder="Altura em mm"
@@ -687,7 +722,7 @@ export default function SidebarMoldes({
                       <input
                         type="number"
                         min="1"
-                        className="w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs text-zinc-805"
+                        className="w-full bg-white border border-zinc-205 rounded-lg px-2 py-1 text-xs text-zinc-850"
                         value={calcThickness || ''}
                         onChange={(e) => setCalcThickness(Math.max(0, parseFloat(e.target.value) || 0))}
                         placeholder="Ex: 4"
@@ -696,7 +731,7 @@ export default function SidebarMoldes({
                     <div>
                       <label className="block text-[8px] font-bold text-zinc-505 uppercase tracking-wider mb-1">Estilo do Molde</label>
                       <select
-                        className="w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs text-zinc-705 cursor-pointer"
+                        className="w-full bg-white border border-zinc-205 rounded-lg px-2 py-1 text-xs text-zinc-805 cursor-pointer"
                         value={calcShape}
                         onChange={(e) => setCalcShape(e.target.value as 'rect' | 'oval')}
                       >
@@ -728,129 +763,123 @@ export default function SidebarMoldes({
         {/* TAB 7: PREMIUM IMAGE PACK FOR KEYCHAINS */}
         {activeTab === 'pack-imagens' && (
           <div className="space-y-4" id="pane-pack-imagens">
-            <span className="block text-[10px] uppercase font-bold tracking-wider text-zinc-500 mb-1">Pack de Imagens Premium</span>
+            <span className="block text-[10px] uppercase font-bold tracking-wider text-zinc-500 mb-1">Packs de Imagens em Alta Resolução</span>
             <p className="text-[10px] text-zinc-500 leading-relaxed">
-              Arraste ou clique nessas estampas profissionais de alta definição em alta qualidade para usá-las em seus chaveiros!
+              Desenhos, estampas e imagens em HD de alta qualidade hospedados no Google Drive para uso profissional em seus chaveiros de resina!
             </p>
 
-            {/* ADMIN-ONLY UPLOADER INSIDE ACCOUNTS (NOT ADMIN CONSOLE OVERLAY) */}
+            {/* ADMIN-ONLY DRIVE LINKS SETTER */}
             {userEmail === 'admin123@resina.com' && (
-              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3.5 space-y-3">
-                <h4 className="text-[10px] uppercase tracking-wider font-bold text-indigo-900 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-700 animate-pulse" />
-                  Upload de Estampa (Fácil Admin)
+              <div className="bg-indigo-50 border border-indigo-250 rounded-xl p-3.5 space-y-3">
+                <h4 className="text-[10px] uppercase tracking-wider font-bold text-indigo-900 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-indigo-700" />
+                  Configurar Links do Google Drive (Admin)
                 </h4>
-                
-                <div>
-                  <label className="block text-[8.5px] font-bold text-zinc-550 uppercase tracking-widest mb-1">Título da Estampa</label>
-                  <input
-                    type="text"
-                    className="w-full bg-white border border-indigo-200 rounded-lg px-2 py-1 text-xs text-zinc-800 outline-none"
-                    value={packImgName}
-                    onChange={(e) => setPackImgName(e.target.value)}
-                    placeholder="Ex: Fundo Glitter Azul"
-                  />
+                <p className="text-[9px] text-indigo-805 leading-normal">
+                  Insira abaixo os links das pastas ou arquivos correspondentes para cada um dos packs (limite de 5).
+                </p>
+
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Link do Pack 01</label>
+                    <input
+                      type="text"
+                      className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1 text-xs text-zinc-850 outline-none animate-fade-in"
+                      value={link1}
+                      onChange={(e) => setLink1(e.target.value)}
+                      placeholder="Ex: https://drive.google.com/..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Link do Pack 02</label>
+                    <input
+                      type="text"
+                      className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1 text-xs text-zinc-850 outline-none"
+                      value={link2}
+                      onChange={(e) => setLink2(e.target.value)}
+                      placeholder="Ex: https://drive.google.com/..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Link do Pack 03</label>
+                    <input
+                      type="text"
+                      className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1 text-xs text-zinc-850 outline-none"
+                      value={link3}
+                      onChange={(e) => setLink3(e.target.value)}
+                      placeholder="Ex: https://drive.google.com/..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Link do Pack 04</label>
+                    <input
+                      type="text"
+                      className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1 text-xs text-zinc-850 outline-none"
+                      value={link4}
+                      onChange={(e) => setLink4(e.target.value)}
+                      placeholder="Ex: https://drive.google.com/..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-0.5">Link do Pack 05</label>
+                    <input
+                      type="text"
+                      className="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1 text-xs text-zinc-850 outline-none"
+                      value={link5}
+                      onChange={(e) => setLink5(e.target.value)}
+                      placeholder="Ex: https://drive.google.com/..."
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-[8.5px] font-bold text-zinc-550 uppercase tracking-widest mb-1">Selecione Arquivo de Imagem</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={isUploadingPack}
-                    className="text-xs text-zinc-600 block w-full file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-750 cursor-pointer"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      if (!packImgName.trim()) {
-                        const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                        setPackImgName(baseName);
-                      }
-                      setIsUploadingPack(true);
-                      const reader = new FileReader();
-                      reader.onload = () => {
-                        compressImage(reader.result as string).then((compressed) => {
-                          onAddImageToPack(packImgName || 'Estampa Premium', compressed)
-                            .then(() => {
-                              alert('Estampa adicionada ao Pack Premium com sucesso!');
-                              setPackImgName('');
-                            })
-                            .catch(err => {
-                              alert(`Erro ao fazer upload: ${err.message || err}`);
-                            })
-                            .finally(() => {
-                              setIsUploadingPack(false);
-                            });
-                        });
-                      };
-                      reader.readAsDataURL(file);
-                    }}
-                  />
-                </div>
+                <button
+                  type="button"
+                  disabled={isSavingLinks}
+                  onClick={() => {
+                    setIsSavingLinks(true);
+                    onSaveDriveLinks([link1, link2, link3, link4, link5])
+                      .then(() => alert('Links salvos e atualizados com sucesso!'))
+                      .catch((err) => alert('Erro ao salvar links: ' + (err.message || err)))
+                      .finally(() => setIsSavingLinks(false));
+                  }}
+                  className="w-full border-0 py-1.5 px-3 bg-indigo-600 hover:bg-indigo-750 text-white font-bold text-[10.5px] rounded-lg cursor-pointer transition-all active:scale-95 text-center shadow-xs"
+                >
+                  {isSavingLinks ? 'Salvando...' : 'Salvar Links do Drive'}
+                </button>
               </div>
             )}
 
-            {/* User feed grid */}
-            <div>
-              {activeItemId && activeItemHasMask && (
-                <div className="bg-emerald-50 border border-emerald-250 rounded-lg p-2 flex items-start gap-1.5 text-emerald-800 text-[9.5px] mb-3">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
-                  <span>Clique na foto abaixo para preencher seu molde selecionado.</span>
-                </div>
-              )}
-
-              {imagePack.length === 0 ? (
-                <div className="p-8 text-center text-zinc-400 bg-zinc-50 rounded-xl border border-zinc-200 font-mono text-[9px]">
-                  Nenhum item adicionado ao Pack ainda.
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2.5" id="premium-pack-grid">
-                  {imagePack.map((img) => (
-                    <div
-                      key={img.id}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("text/plain", img.url);
-                        e.dataTransfer.effectAllowed = "copy";
-                      }}
-                      className="group relative aspect-square bg-white rounded-xl border border-zinc-200 overflow-hidden hover:border-indigo-500 transition-all cursor-grab active:cursor-grabbing hover:shadow shadow-xs"
-                    >
-                      <button
-                        onClick={() => onSelectUploadForActiveMold(img.url)}
-                        className="w-full h-full p-0.5 cursor-pointer text-center flex flex-col justify-between"
-                        title="Aplicar estampa ao molde ativo"
-                      >
-                        <div className="flex-1 w-full h-full overflow-hidden flex items-center justify-center bg-zinc-50">
-                          <img 
-                            src={img.url} 
-                            alt={img.name} 
-                            className="max-w-full max-h-full object-cover" 
-                            referrerPolicy="no-referrer"
-                          />
-                        </div>
-                        <div className="bg-black/40 text-white text-[8.5px] font-bold py-1 w-full truncate absolute bottom-0">
-                          {img.name}
-                        </div>
-                      </button>
-
-                      {userEmail === 'admin123@resina.com' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm(`Excluir estampa "${img.name}" do pack?`)) {
-                              onDeleteImageFromPack(img.id)
-                                .then(() => alert('Excluído do pack!'))
-                                .catch(err => alert('Erro: ' + err.message));
-                            }
-                          }}
-                          className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded shadow hover:bg-red-700 cursor-pointer"
-                          title="Remover do pack"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      )}
+            {/* Display links for users */}
+            <div className="space-y-2.5 pt-1.5">
+              {[link1, link2, link3, link4, link5].map((lbl, idx) => {
+                if (!lbl || !lbl.trim()) return null;
+                return (
+                  <a
+                    key={idx}
+                    href={lbl.trim()}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between p-3.5 bg-gradient-to-r from-indigo-50 to-white/80 border border-indigo-200 hover:border-indigo-300 rounded-xl text-indigo-900 group hover:shadow-sm transition-all animate-fade-in"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-sm">
+                        <Library className="w-4 h-4" />
+                      </div>
+                      <div className="text-left">
+                        <span className="block text-[11px] font-bold text-indigo-950">Acessar Pack {String(idx + 1).padStart(2, '0')}</span>
+                        <span className="block text-[9px] text-zinc-400 font-mono tracking-wider">IMAGENS EM ULTRA HD / DRIVE</span>
+                      </div>
                     </div>
-                  ))}
+                    <div className="w-5 h-5 rounded-full bg-indigo-150 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center transition-colors">
+                      <ArrowRight className="w-3 h-3" />
+                    </div>
+                  </a>
+                );
+              })}
+
+              {![link1, link2, link3, link4, link5].some(l => l && l.trim()) && (
+                <div className="p-8 text-center text-zinc-400 bg-zinc-50 rounded-xl border border-zinc-200 font-mono text-[9px]">
+                  Nenhum pack de imagem configurado pelo administrador ainda.
                 </div>
               )}
             </div>
@@ -868,59 +897,82 @@ export default function SidebarMoldes({
             {/* ADMIN PDF UPLOADER FORM (ACCOUNTS) */}
             {userEmail === 'admin123@resina.com' && (
               <div className="bg-amber-50 border border-amber-250 rounded-xl p-3.5 space-y-3">
-                <h4 className="text-[10px] uppercase tracking-wider font-bold text-amber-900 flex items-center gap-1">
+                <h4 className="text-[10px] uppercase tracking-wider font-bold text-amber-900 flex items-center gap-1.5">
                   <Plus className="w-3.5 h-3.5 text-amber-600" />
-                  Adicionar E-book / Curso PDF
+                  Carregar Apostilas PDF (Em Lote)
                 </h4>
+                <p className="text-[9px] text-amber-805 leading-relaxed font-sans">
+                  Selecione <strong>vários PDFs de uma vez</strong>. Os nomes das apostilas serão gerados automaticamente a partir dos arquivos.
+                </p>
 
                 <div>
-                  <label className="block text-[8.5px] font-bold text-zinc-550 uppercase tracking-widest mb-1">Nome do Arquivo PDF</label>
-                  <input
-                    type="text"
-                    className="w-full bg-white border border-amber-200 rounded-lg px-2 py-1 text-xs text-zinc-800 outline-none"
-                    value={courseName}
-                    onChange={(e) => setCourseName(e.target.value)}
-                    placeholder="Ex: Manual do Chaveiro Perfeito"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[8.5px] font-bold text-zinc-550 uppercase tracking-widest mb-1">Selecione o arquivo (.pdf)</label>
+                  <label className="block text-[8px] font-bold text-zinc-550 uppercase tracking-widest mb-1.5">Selecione PDFs do seu computador:</label>
                   <input
                     type="file"
                     accept=".pdf"
+                    multiple
                     disabled={isUploadingCourse}
                     className="text-xs text-zinc-650 block w-full file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-700 cursor-pointer"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      if (!courseName.trim()) {
-                        const cleanNodeName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                        setCourseName(cleanNodeName);
-                      }
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0) return;
                       
-                      const sizeFormatted = (file.size / (1024 * 1024)).toFixed(2) + " MB";
                       setIsUploadingCourse(true);
-                      
-                      const reader = new FileReader();
-                      reader.onload = () => {
-                        const rawData = reader.result as string;
-                        onAddCoursePDF(courseName || 'E-book de Resina', rawData, sizeFormatted)
-                          .then(() => {
-                            alert('Apostila PDF cadastrada com sucesso!');
-                            setCourseName('');
-                          })
-                          .catch((err) => {
-                            alert(`Falha no upload do PDF: ${err.message || err}`);
-                          })
-                          .finally(() => {
-                            setIsUploadingCourse(false);
+                      let successCount = 0;
+                      let errorCount = 0;
+
+                      for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const sizeMB = file.size / (1024 * 1024);
+                        if (sizeMB > 4.2) {
+                          alert(`O arquivo "${file.name}" excede o limite do servidor de 4MB. Envie arquivos PDF menores.`);
+                          errorCount++;
+                          continue;
+                        }
+
+                        const cleanName = file.name.replace(/\.pdf$/i, '');
+                        const sizeFormatted = sizeMB.toFixed(2) + " MB";
+
+                        try {
+                          await new Promise<void>((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = async () => {
+                              const rawData = reader.result as string;
+                              try {
+                                await onAddCoursePDF(cleanName, rawData, sizeFormatted);
+                                resolve();
+                              } catch (err: any) {
+                                reject(err);
+                              }
+                            };
+                            reader.onerror = () => reject(new Error('Erro ao ler PDF'));
+                            reader.readAsDataURL(file);
                           });
-                      };
-                      reader.readAsDataURL(file);
+                          successCount++;
+                        } catch (err) {
+                          console.error(err);
+                          errorCount++;
+                        }
+                      }
+
+                      setIsUploadingCourse(false);
+                      if (successCount > 0) {
+                        alert(`Carregado com sucesso! ${successCount} arquivo(s) PDF adicionado(s).`);
+                      }
+                      if (errorCount > 0) {
+                        alert(`Falha em carregar ${errorCount} arquivo(s) PDF.`);
+                      }
+                      e.target.value = ''; // clean field
                     }}
                   />
                 </div>
+
+                {isUploadingCourse && (
+                  <div className="text-[9px] font-bold text-amber-700 animate-pulse flex items-center gap-1.5 mt-1">
+                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping" />
+                    Efetuando o upload dos PDFs em lote... por favor aguarde.
+                  </div>
+                )}
               </div>
             )}
 
@@ -934,11 +986,11 @@ export default function SidebarMoldes({
                 courses.map((doc) => (
                   <div 
                     key={doc.id}
-                    className="p-3 bg-zinc-50 hover:bg-white border border-zinc-200 hover:border-amber-400 rounded-xl flex items-center justify-between gap-3 transition-all hover:shadow-xs"
+                    className="p-3 bg-zinc-50 hover:bg-white border border-zinc-200 hover:border-amber-400 rounded-xl flex items-center justify-between gap-3 transition-all hover:shadow-xs animate-fade-in"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 shrink-0 border border-amber-200">
-                        <BookOpen className="w-4 h-4" />
+                      <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center text-amber-700 shrink-0 border border-amber-100">
+                        <BookOpen className="w-4 h-4 text-amber-600" />
                       </div>
                       <div className="min-w-0">
                         <span className="block text-[10.5px] font-bold text-zinc-700 truncate" title={doc.name}>
@@ -954,8 +1006,8 @@ export default function SidebarMoldes({
                       <a
                         href={doc.url}
                         download={`${doc.name}.pdf`}
-                        className="p-1 px-2.5 bg-zinc-150 hover:bg-indigo-600 hover:text-white rounded-lg text-zinc-700 text-[10.5px] font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95 border border-zinc-200 shadow-sm"
-                        title="Dê DOWNLOAD da aula / apostila"
+                        className="p-1 px-2.5 bg-zinc-150 hover:bg-indigo-650 hover:text-white rounded-lg text-zinc-700 text-[10.5px] font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95 border border-zinc-200 shadow-sm focus:outline-none"
+                        title="Baixar apostila"
                       >
                         <Download className="w-3 h-3" />
                         Baixar

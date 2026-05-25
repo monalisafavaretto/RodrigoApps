@@ -106,6 +106,7 @@ interface DatabaseSchema {
   blockedLogs: BlockedLog[];
   imagePack?: { id: string; name: string; url: string; createdAt: string }[];
   courses?: { id: string; name: string; url: string; size?: string; createdAt: string }[];
+  driveLinks?: string[];
 }
 
 // Generate standard date string for YYYY-MM-DD
@@ -896,6 +897,27 @@ app.use((req, res, next) => {
     db.courses = db.courses.filter(item => item.id !== id);
     await saveDatabase(db);
     res.json({ success: true });
+  });
+
+  // API: Get Google Drive links
+  app.get("/api/drive-links", (req, res) => {
+    const db = loadDatabase();
+    res.json(db.driveLinks || []);
+  });
+
+  // API: Save Google Drive links (Admin only)
+  app.post("/api/drive-links", async (req, res) => {
+    const { admin_email, links } = req.body;
+    if (admin_email !== "admin123@resina.com") {
+      return res.status(403).json({ error: "Acesso administrativo negado." });
+    }
+    if (!Array.isArray(links)) {
+      return res.status(400).json({ error: "links deve ser um array." });
+    }
+    const db = loadDatabase();
+    db.driveLinks = links;
+    await saveDatabase(db);
+    res.json({ success: true, links: db.driveLinks });
   });
 
   // Vite preview compiler middleware for Dev environment, and static fallback client in Production environment

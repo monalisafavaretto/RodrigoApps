@@ -76,6 +76,7 @@ export default function App() {
   // Custom interactive pack of images & courses state
   const [imagePack, setImagePack] = useState<{ id: string; name: string; url: string; createdAt: string }[]>([]);
   const [courses, setCourses] = useState<{ id: string; name: string; url: string; size?: string; createdAt: string }[]>([]);
+  const [driveLinks, setDriveLinks] = useState<string[]>([]);
 
   const fetchImagePackAndCourses = () => {
     fetch('/api/image-pack')
@@ -87,6 +88,11 @@ export default function App() {
       .then(res => res.json())
       .then(data => setCourses(Array.isArray(data) ? data : []))
       .catch(err => console.error("Error loading courses:", err));
+
+    fetch('/api/drive-links')
+      .then(res => res.json())
+      .then(data => setDriveLinks(Array.isArray(data) ? data : []))
+      .catch(err => console.error("Error loading drive links:", err));
   };
 
   useEffect(() => {
@@ -145,6 +151,22 @@ export default function App() {
     try {
       const res = await fetch(`/api/courses/${id}?admin_email=${encodeURIComponent(userEmail || '')}`, {
         method: 'DELETE'
+      });
+      const data = await safeJson(res);
+      fetchImagePackAndCourses();
+      return data;
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const handleSaveDriveLinks = async (links: string[]) => {
+    try {
+      const res = await fetch('/api/drive-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_email: userEmail, links })
       });
       const data = await safeJson(res);
       fetchImagePackAndCourses();
@@ -980,6 +1002,8 @@ export default function App() {
               onDeleteImageFromPack={handleDeleteImageFromPack}
               onAddCoursePDF={handleAddCoursePDF}
               onDeleteCoursePDF={handleDeleteCoursePDF}
+              driveLinks={driveLinks}
+              onSaveDriveLinks={handleSaveDriveLinks}
             />
           </div>
           
