@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "/api/index"
+      "destination": "https://resina-design-416344061304.us-east1.run.app/api/:path*"
     },
     {
       "source": "/lowify/:path*",
-      "destination": "/api/index"
+      "destination": "https://resina-design-416344061304.us-east1.run.app/lowify/:path*"
     },
     {
       "source": "/((?!api|lowify|assets|favicon.svg|favicon.ico).*)*",

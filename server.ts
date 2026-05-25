@@ -804,15 +804,15 @@ app.use((req, res, next) => {
     }
 
     if (!process.env.VERCEL) {
-      if (firestore) {
-        try {
-          await hydrateFromFirestore();
-        } catch (err) {
-          console.error("Direct hydration on startup failed:", err);
-        }
-      }
       app.listen(PORT, "0.0.0.0", () => {
         console.log(`Express custom server running on http://localhost:${PORT}`);
+        
+        // Asynchronously initiate Firestore database hydration in the background after binding to the port
+        if (firestore) {
+          hydrateFromFirestore().catch(err => {
+            console.error("Background database hydration failed:", err);
+          });
+        }
       });
     }
   }
