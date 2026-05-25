@@ -4,22 +4,40 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { Firestore } from "@google-cloud/firestore";
 import zlib from "zlib";
+import { fileURLToPath } from "url";
+
+// ES Module __dirname and __filename equivalents
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuration
 const DATABASE_FILE = process.env.VERCEL 
   ? "/tmp/database.json" 
-  : path.join(process.cwd(), "database.json");
+  : path.join(__dirname, "database.json");
 
 const PORT = 3000;
 
 if (process.env.VERCEL && !fs.existsSync("/tmp/database.json")) {
-  const seedPath = path.join(process.cwd(), "database.json");
+  const seedPath = path.join(__dirname, "database.json");
   if (fs.existsSync(seedPath)) {
     try {
       fs.copyFileSync(seedPath, "/tmp/database.json");
       console.log("Successfully copied database.json seed to /tmp/database.json");
     } catch (e) {
       console.error("Failed to copy database.json seed:", e);
+    }
+  } else {
+    // If the seed file itself can't be traced relative to __dirname, try process.cwd()
+    const fallbackSeed = path.join(process.cwd(), "database.json");
+    if (fs.existsSync(fallbackSeed)) {
+      try {
+        fs.copyFileSync(fallbackSeed, "/tmp/database.json");
+        console.log("Successfully copied database.json fallback seed to /tmp/database.json");
+      } catch (errFallback) {
+        console.error("Failed to copy fallback seed:", errFallback);
+      }
+    } else {
+      console.warn("Could not find any database.json to seed Vercel environment.");
     }
   }
 }
@@ -325,6 +343,19 @@ async function forwardWebhookToClient(payload: any) {
 const app = express();
 let hydrationPromise: Promise<void> | null = null;
 
+// Vercel Path-Reconstruction Middleware (Fixes Express routing matching under Vercel Serverless rewrites)
+app.use((req, res, next) => {
+  console.log(`Incoming request: URL=${req.url} Method=${req.method}`);
+  
+  // Vercel sometimes rewrites path to '/api/index' internally, but passes the original in headers
+  const originalUrl = req.headers["x-now-outer-path"] || req.headers["x-forwarded-url"] || req.headers["x-original-url"];
+  if (originalUrl && typeof originalUrl === "string") {
+    console.log(`Vercel original path detected: ${originalUrl}`);
+    req.url = originalUrl;
+  }
+  next();
+});
+
 // Middleware to ensure database is hydrated before resolving any request (especially in serverless Vercel)
 app.use(async (req, res, next) => {
   if (!hasHydratedFromFirestore && firestore) {
@@ -343,12 +374,11 @@ app.use(async (req, res, next) => {
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-async function startServer() {
-  // Log accesses / requests count
-  app.use((req, res, next) => {
-    // Basic server request logger
-    next();
-  });
+// Log accesses / requests count
+app.use((req, res, next) => {
+  // Basic server request logger
+  next();
+});
 
   // API: Authentication / Login Validation
   app.post("/api/login", async (req, res) => {
@@ -751,34 +781,35 @@ async function startServer() {
   });
 
   // Vite preview compiler middleware for Dev environment, and static fallback client in Production environment
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else if (!process.env.VERCEL) {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
-
-  if (!process.env.VERCEL) {
-    if (firestore) {
-      try {
-        await hydrateFromFirestore();
-      } catch (err) {
-        console.error("Direct hydration on startup failed:", err);
-      }
+  async function initEnvironment() {
+    if (process.env.NODE_ENV !== "production") {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else if (!process.env.VERCEL) {
+      const distPath = path.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
     }
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Express custom server running on http://localhost:${PORT}`);
-    });
+
+    if (!process.env.VERCEL) {
+      if (firestore) {
+        try {
+          await hydrateFromFirestore();
+        } catch (err) {
+          console.error("Direct hydration on startup failed:", err);
+        }
+      }
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Express custom server running on http://localhost:${PORT}`);
+      });
+    }
   }
-}
 
-startServer();
+  initEnvironment();
 
-export default app;
+  export default app;

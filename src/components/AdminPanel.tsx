@@ -322,7 +322,7 @@ export default function AdminPanel({ onClose, adminEmail }: AdminPanelProps) {
                   <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider w-20">Link Vercel:</span>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-mono bg-zinc-900 px-3 py-1.5 border border-zinc-800 rounded-lg select-all text-white font-bold leading-none">
-                      https://resinapp-mu.vercel.app/api/webhook
+                      https://resinapp-five.vercel.app/api/webhook
                     </span>
                     <span className="text-[9px] bg-indigo-500/20 text-indigo-300 font-bold px-2 py-0.5 rounded-full font-mono uppercase">
                       Vercel Prod
