@@ -99,27 +99,11 @@ interface BlockedLog {
   userAgent: string;
 }
 
-interface PackImage {
-  id: string;
-  name: string;
-  url: string; // Base64 data URL
-  createdAt: string;
-}
-
-interface PdfCourse {
-  id: string;
-  name: string;
-  url: string; // Base64 PDF data URL
-  createdAt: string;
-}
-
 interface DatabaseSchema {
   users: Record<string, User>;
   projects: ProjectData[];
   webhookLogs: WebhookLog[];
   blockedLogs: BlockedLog[];
-  packImages?: PackImage[];
-  pdfCourses?: PdfCourse[];
 }
 
 // Generate standard date string for YYYY-MM-DD
@@ -247,9 +231,7 @@ function loadDatabase(): DatabaseSchema {
     },
     projects: [],
     webhookLogs: [],
-    blockedLogs: [],
-    packImages: [],
-    pdfCourses: []
+    blockedLogs: []
   };
 
   try {
@@ -261,8 +243,6 @@ function loadDatabase(): DatabaseSchema {
       const projects = parsed.projects || [];
       const webhookLogs = parsed.webhookLogs || [];
       const blockedLogs = parsed.blockedLogs || [];
-      const packImages = parsed.packImages || [];
-      const pdfCourses = parsed.pdfCourses || [];
 
       // Ensure default users are present
       for (const email of Object.keys(defaultSchema.users)) {
@@ -276,8 +256,6 @@ function loadDatabase(): DatabaseSchema {
       parsed.projects = projects;
       parsed.webhookLogs = webhookLogs;
       parsed.blockedLogs = blockedLogs;
-      parsed.packImages = packImages;
-      parsed.pdfCourses = pdfCourses;
 
       fs.writeFileSync(DATABASE_FILE, JSON.stringify(parsed, null, 2));
       return parsed as DatabaseSchema;
@@ -771,104 +749,6 @@ app.use((req, res, next) => {
     }
 
     res.status(404).json({ error: "Usuário não encontrado." });
-  });
-
-  // Pack de Imagens APIs
-  app.get("/api/pack-images", (req, res) => {
-    const db = loadDatabase();
-    res.json({ success: true, packImages: db.packImages || [] });
-  });
-
-  app.post("/api/admin/pack-images", async (req, res) => {
-    const { admin_email, name, file } = req.body;
-    if (admin_email !== "admin123@resina.com") {
-      return res.status(403).json({ error: "Acesso administrativo negado." });
-    }
-    if (!name || !file) {
-      return res.status(400).json({ error: "Nome e arquivo são obrigatórios." });
-    }
-
-    const db = loadDatabase();
-    const newImage: PackImage = {
-      id: "img_" + Math.random().toString(36).substring(2, 9),
-      name: name.trim(),
-      url: file,
-      createdAt: new Date().toISOString()
-    };
-
-    if (!db.packImages) db.packImages = [];
-    db.packImages.push(newImage);
-    await saveDatabase(db);
-
-    res.json({ success: true, image: newImage });
-  });
-
-  app.delete("/api/admin/pack-images/:id", async (req, res) => {
-    const { id } = req.params;
-    const { admin_email } = req.query;
-    if (admin_email !== "admin123@resina.com") {
-      return res.status(403).json({ error: "Acesso administrativo negado." });
-    }
-
-    const db = loadDatabase();
-    if (!db.packImages) db.packImages = [];
-    const initialLength = db.packImages.length;
-    db.packImages = db.packImages.filter(img => img.id !== id);
-
-    if (db.packImages.length < initialLength) {
-      await saveDatabase(db);
-      return res.json({ success: true });
-    }
-    res.status(404).json({ error: "Imagem não encontrada." });
-  });
-
-  // Apostilas / Cursos PDF APIs
-  app.get("/api/pdf-courses", (req, res) => {
-    const db = loadDatabase();
-    res.json({ success: true, pdfCourses: db.pdfCourses || [] });
-  });
-
-  app.post("/api/admin/pdf-courses", async (req, res) => {
-    const { admin_email, name, file } = req.body;
-    if (admin_email !== "admin123@resina.com") {
-      return res.status(403).json({ error: "Acesso administrativo negado." });
-    }
-    if (!name || !file) {
-      return res.status(400).json({ error: "Nome e arquivo PDF são obrigatórios." });
-    }
-
-    const db = loadDatabase();
-    const newCourse: PdfCourse = {
-      id: "pdf_" + Math.random().toString(36).substring(2, 9),
-      name: name.trim(),
-      url: file, // pdf base64 string
-      createdAt: new Date().toISOString()
-    };
-
-    if (!db.pdfCourses) db.pdfCourses = [];
-    db.pdfCourses.push(newCourse);
-    await saveDatabase(db);
-
-    res.json({ success: true, course: newCourse });
-  });
-
-  app.delete("/api/admin/pdf-courses/:id", async (req, res) => {
-    const { id } = req.params;
-    const { admin_email } = req.query;
-    if (admin_email !== "admin123@resina.com") {
-      return res.status(403).json({ error: "Acesso administrativo negado." });
-    }
-
-    const db = loadDatabase();
-    if (!db.pdfCourses) db.pdfCourses = [];
-    const initialLength = db.pdfCourses.length;
-    db.pdfCourses = db.pdfCourses.filter(pdf => pdf.id !== id);
-
-    if (db.pdfCourses.length < initialLength) {
-      await saveDatabase(db);
-      return res.json({ success: true });
-    }
-    res.status(404).json({ error: "Apostila não encontrada." });
   });
 
   // Track page image generation
