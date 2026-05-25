@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Zero-Trust Rule: Block all client-side read, write, list and get operations.
+    // The server-side application communicates via cloud-container Server Credentials, which bypasses client security rules.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

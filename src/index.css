@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Lobster&family=Pacifico&family=Anton&family=Bebas+Neue&family=Bungee&family=Cinzel:wght@400;700&family=Comfortaa:wght@400;700&family=Caveat:wght@400;700&family=Cookie&family=Fredoka:wght@400;600&family=Great+Vibes&family=Sacramento&family=Permanent+Marker&family=Special+Elite&family=Unbounded:wght@400;700&family=Creepster&family=Montserrat:wght@400;700;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-space: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Base custom definitions */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #f1f5f9; /* Rich clean light background for the canvas workspace */
+  color: #0f172a;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Ensure print works properly with perfect 210mm x 297mm bounds */
+@media print {
+  html, body, #root {
+    background: #ffffff !important;
+    color: #000000 !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Target the A4 parent to be positioned exactly at the top-left */
+  .a4-print-sheet {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    transform: none !important;
+    transform-origin: 0 0 !important;
+    z-index: 9999999 !important;
+    visibility: visible !important;
+    display: block !important;
+  }
+
+  /* Make sure every nested element with colors/background renders */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* Hide scrollbars elegantly */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Text clipping container defaults */
+.clip-path-svg {
+  position: absolute;
+  width: 0;
+  height: 0;
+}

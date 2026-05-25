@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/lowify/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/((?!api|lowify|assets|favicon.svg|favicon.ico).*)*",
+      "destination": "/index.html"
+    }
+  ]
+}

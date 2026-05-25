@@ -1,0 +1,6 @@
+{
+  "name": "ResinApp",
+  "description": "Editor profissional de moldes para chaveiros de resina, letras vazadas e canetas personalizadas com exportação em tamanho real A4.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

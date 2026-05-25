@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <!-- Vibrant translucent resin-style gradient -->
+    <linearGradient id="resinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="50%" stop-color="#EC4899" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  
+  <!-- Mold casing / cured resin block -->
+  <rect x="5" y="5" width="90" height="90" rx="24" fill="url(#resinGrad)" />
+  
+  <!-- Outer crystalline ring (silicone boundary highlight) -->
+  <rect x="11" y="11" width="78" height="78" rx="19" fill="none" stroke="white" stroke-width="2.5" stroke-opacity="0.3" />
+  
+  <!-- Stylized Elegant Letter 'R' for Resin -->
+  <path d="M 32 28 C 32 28, 55 24, 58 35 C 61 46, 45 48, 38 48 L 38 72 M 38 48 L 58 72" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+  <circle cx="38" cy="32" r="4" fill="white" />
+  <circle cx="38" cy="48" r="4" fill="white" />
+  <circle cx="58" cy="72" r="4" fill="white" />
+  <circle cx="38" cy="72" r="4" fill="white" />
+
+  <!-- Glossy specular highlights & star sparkles -->
+  <path d="M 72 20 L 74 27 L 81 29 L 74 31 L 72 38 L 70 31 L 63 29 L 70 27 Z" fill="white" filter="url(#glow)" />
+  <path d="M 24 58 L 25 62 L 29 63 L 25 64 L 24 68 L 23 64 L 19 63 L 23 62 Z" fill="#FDE047" />
+  <circle cx="71" cy="53" r="3" fill="white" fill-opacity="0.8" />
+</svg>

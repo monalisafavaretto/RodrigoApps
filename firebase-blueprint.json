@@ -1,0 +1,89 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User license and usage details map key-value schema",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "active": { "type": "integer" },
+        "status": { "type": "string" },
+        "source": { "type": "string" },
+        "plan_key": { "type": "string" },
+        "plan_name": { "type": "string" },
+        "plan_limit": { "type": "integer" },
+        "is_recurring": { "type": "integer" },
+        "access_start": { "type": "string" },
+        "access_end": { "type": "string" },
+        "no_access_end": { "type": "integer" },
+        "purchase_count": { "type": "integer" },
+        "generated_count": { "type": "integer" },
+        "total_generated_count": { "type": "integer" },
+        "last_generated_at": { "type": "string" },
+        "billing_cycle_start": { "type": "string" },
+        "billing_cycle_end": { "type": "string" },
+        "next_reset_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      },
+      "required": ["email", "active", "status", "plan_key"]
+    },
+    "ProjectData": {
+      "title": "ProjectData",
+      "description": "User custom drawing designs for keychain molds, hollow letter sets, and custom printed pens",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "items": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "items"]
+    },
+    "WebhookLog": {
+      "title": "WebhookLog",
+      "description": "Monetization and checkout sync signals logged from external platform buy triggers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "source": { "type": "string" },
+        "email": { "type": "string" },
+        "status": { "type": "string" },
+        "plan_detected": { "type": "string" },
+        "payload": { "type": "object" }
+      },
+      "required": ["id", "date", "status"]
+    },
+    "BlockedLog": {
+      "title": "BlockedLog",
+      "description": "Security logs capturing blocked access attempts from unrecognized IPs or misconfigured clients",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "email": { "type": "string" },
+        "reason": { "type": "string" },
+        "ip": { "type": "string" },
+        "userAgent": { "type": "string" }
+      },
+      "required": ["date", "email", "reason"]
+    },
+    "DatabaseBackup": {
+      "title": "DatabaseBackup",
+      "description": "Synchronized and highly optimized binary-level representation of whole full-scale application database state",
+      "type": "object",
+      "properties": {
+        "db_compressed": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["db_compressed", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/resina_db/{versionId}": {
+      "schema": "DatabaseBackup",
+      "description": "Primary atomic backup partition holding compressed full-scale state of user licensing profiles and projects."
+    }
+  }
+}
