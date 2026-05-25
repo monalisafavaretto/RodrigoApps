@@ -6,19 +6,37 @@ import { Firestore } from "@google-cloud/firestore";
 import zlib from "zlib";
 import { fileURLToPath } from "url";
 
-// ES Module __dirname and __filename equivalents
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Safe ESM & CommonJS path/directory resolver
+let currentFilename = "";
+let currentDirname = "";
+
+try {
+  // If we are in CommonJS, __filename and __dirname are defined as globals
+  if (typeof __filename !== "undefined" && typeof __dirname !== "undefined") {
+    currentFilename = __filename;
+    currentDirname = __dirname;
+  } else if (typeof import.meta !== "undefined" && import.meta && import.meta.url) {
+    // ESM environment
+    currentFilename = fileURLToPath(import.meta.url);
+    currentDirname = path.dirname(currentFilename);
+  } else {
+    currentDirname = process.cwd();
+    currentFilename = path.join(currentDirname, "server.ts");
+  }
+} catch (e) {
+  currentDirname = process.cwd();
+  currentFilename = path.join(currentDirname, "server.ts");
+}
 
 // Configuration
 const DATABASE_FILE = process.env.VERCEL 
   ? "/tmp/database.json" 
-  : path.join(__dirname, "database.json");
+  : path.join(process.cwd(), "database.json");
 
 const PORT = 3000;
 
 if (process.env.VERCEL && !fs.existsSync("/tmp/database.json")) {
-  const seedPath = path.join(__dirname, "database.json");
+  const seedPath = path.join(process.cwd(), "database.json");
   if (fs.existsSync(seedPath)) {
     try {
       fs.copyFileSync(seedPath, "/tmp/database.json");
@@ -27,18 +45,7 @@ if (process.env.VERCEL && !fs.existsSync("/tmp/database.json")) {
       console.error("Failed to copy database.json seed:", e);
     }
   } else {
-    // If the seed file itself can't be traced relative to __dirname, try process.cwd()
-    const fallbackSeed = path.join(process.cwd(), "database.json");
-    if (fs.existsSync(fallbackSeed)) {
-      try {
-        fs.copyFileSync(fallbackSeed, "/tmp/database.json");
-        console.log("Successfully copied database.json fallback seed to /tmp/database.json");
-      } catch (errFallback) {
-        console.error("Failed to copy fallback seed:", errFallback);
-      }
-    } else {
-      console.warn("Could not find any database.json to seed Vercel environment.");
-    }
+    console.warn("Could not find any database.json to seed Vercel environment.");
   }
 }
 
