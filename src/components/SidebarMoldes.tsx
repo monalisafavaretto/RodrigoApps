@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   Type, Heart, Hash, Layers, Image as ImageIcon, Upload, Plus, Sparkles, 
-  Trash2, ArrowRight, FolderDown, RotateCcw, AlertCircle 
+  Trash2, ArrowRight, FolderDown, RotateCcw, AlertCircle, Calculator, 
+  Library, BookOpen, Download 
 } from 'lucide-react';
 import { LIBRARY_SHAPES, LibraryShape } from '../utils/shapeHelper';
 import FrameCreator from './FrameCreator';
@@ -23,6 +24,15 @@ interface SidebarMoldesProps {
   onDeleteCustomMold: (id: string) => void;
   onDeleteUpload: (index: number) => void;
   onAddCustomMold: (name: string, transparentPngDataUrl: string) => void;
+  
+  // Custom interactive assets
+  userEmail: string;
+  imagePack: { id: string; name: string; url: string; createdAt: string }[];
+  courses: { id: string; name: string; url: string; size?: string; createdAt: string }[];
+  onAddImageToPack: (name: string, url: string) => Promise<void>;
+  onDeleteImageFromPack: (id: string) => Promise<void>;
+  onAddCoursePDF: (name: string, url: string, size?: string) => Promise<void>;
+  onDeleteCoursePDF: (id: string) => Promise<void>;
 }
 
 const FONTS_LIST = [
@@ -47,8 +57,15 @@ export default function SidebarMoldes({
   onDeleteCustomMold,
   onDeleteUpload,
   onAddCustomMold,
+  userEmail,
+  imagePack,
+  courses,
+  onAddImageToPack,
+  onDeleteImageFromPack,
+  onAddCoursePDF,
+  onDeleteCoursePDF,
 }: SidebarMoldesProps) {
-  const [activeTab, setActiveTab] = useState<'moldes' | 'textos' | 'letras' | 'uploads' | 'meus-moldes'>('moldes');
+  const [activeTab, setActiveTab] = useState<'moldes' | 'textos' | 'letras' | 'uploads' | 'meus-moldes' | 'calculadora' | 'pack-imagens' | 'cursos'>('moldes');
   
   // Categorized shapes
   const categories = Array.from(new Set(LIBRARY_SHAPES.map(s => s.category)));
@@ -57,6 +74,38 @@ export default function SidebarMoldes({
   // Text/Word mould state
   const [wordText, setWordText] = useState('RESI');
   const [wordFont, setWordFont] = useState('Bebas Neue');
+
+  // Calculator States
+  const [calcMode, setCalcMode] = useState<'weight' | 'dimensions'>('weight');
+  const [calcWeightInput, setCalcWeightInput] = useState<number>(12);
+  const [calcWidth, setCalcWidth] = useState<number>(50);
+  const [calcHeight, setCalcHeight] = useState<number>(50);
+  const [calcThickness, setCalcThickness] = useState<number>(4);
+  const [calcShape, setCalcShape] = useState<'rect' | 'oval'>('rect');
+
+  // Pack Upload States
+  const [packImgName, setPackImgName] = useState('');
+  const [isUploadingPack, setIsUploadingPack] = useState(false);
+
+  // PDF Course Upload States
+  const [courseName, setCourseName] = useState('');
+  const [isUploadingCourse, setIsUploadingCourse] = useState(false);
+
+  // Math conversions
+  let calcTotal = 0;
+  if (calcMode === 'weight') {
+    calcTotal = calcWeightInput;
+  } else {
+    let volume = 0;
+    if (calcShape === 'rect') {
+      volume = calcWidth * calcHeight * calcThickness;
+    } else {
+      volume = Math.PI * (calcWidth / 2) * (calcHeight / 2) * calcThickness;
+    }
+    calcTotal = volume * 0.0011; // Standard density approximation for craft resin
+  }
+  const calcResina = (calcTotal * 100) / 150;
+  const calcEndurecedor = (calcTotal * 50) / 150;
 
   // Drag and drop upload helper
   const [dragActive, setDragActive] = useState(false);
@@ -164,6 +213,39 @@ export default function SidebarMoldes({
         >
           <Layers className="w-3.5 h-3.5 text-indigo-505" />
           Meus Moldes Salvos
+        </button>
+
+        {/* New Calculator Tab */}
+        <button
+          onClick={() => setActiveTab('calculadora')}
+          className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
+            activeTab === 'calculadora' ? 'bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
+          }`}
+        >
+          <Calculator className="w-3.5 h-3.5 text-teal-605" />
+          Calculadora de Resina
+        </button>
+
+        {/* New Premium Image Pack Tab */}
+        <button
+          onClick={() => setActiveTab('pack-imagens')}
+          className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
+            activeTab === 'pack-imagens' ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-805 border border-indigo-200' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
+          }`}
+        >
+          <Library className="w-3.5 h-3.5 text-indigo-505" />
+          Pack de Imagens Premium
+        </button>
+
+        {/* New Courses/Handouts PDF Tab */}
+        <button
+          onClick={() => setActiveTab('cursos')}
+          className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-start gap-1.5 transition-all text-nowrap cursor-pointer w-full ${
+            activeTab === 'cursos' ? 'bg-amber-50 hover:bg-amber-100 text-amber-805 border border-amber-200' : 'text-zinc-550 hover:text-indigo-600 hover:bg-zinc-100'
+          }`}
+        >
+          <BookOpen className="w-3.5 h-3.5 text-amber-605" />
+          Cursos e Apostilas (PDF)
         </button>
       </div>
 
@@ -504,6 +586,400 @@ export default function SidebarMoldes({
             {/* HIGH PROFILE HIGHLIGHTED CUSTOM MOLD MAKER EMBED */}
             <div className="pt-4 border-t border-zinc-200 mt-6">
               <FrameCreator onAddCustomMold={onAddCustomMold} />
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: CALCULADORA DE RESINAS (100:50 RULE) */}
+        {activeTab === 'calculadora' && (
+          <div className="space-y-4" id="pane-calculadora">
+            <span className="block text-[10px] uppercase font-bold tracking-wider text-zinc-500 mb-1">Calculadora de Resina & Endurecedor</span>
+            <p className="text-[10px] text-zinc-500 leading-relaxed">
+              Calcule as quantidades exatas baseando-se na regra de proporção <strong>100:50</strong> (2 partes de resina para 1 parte de endurecedor).
+            </p>
+
+            {/* Glass-style Interactive Digital Calculator Tool */}
+            <div className="bg-zinc-900 border border-zinc-800 text-emerald-400 p-4 rounded-2xl font-mono text-center shadow-lg relative overflow-hidden select-none">
+              {/* Internal decorative elements to look like a screen */}
+              <div className="absolute top-2 right-3 text-[7px] text-zinc-600 uppercase tracking-widest font-sans">REGRA 100g / 50g</div>
+              <div className="text-[8px] text-zinc-500 uppercase text-left tracking-wider mb-1 font-sans">Mistura Estimada Total:</div>
+              <div className="text-3xl font-extrabold tracking-tight bg-zinc-950 border border-zinc-800 p-3 rounded-xl w-full mb-3 text-right text-emerald-400 shadow-inner">
+                {Number(calcTotal).toFixed(1)} <span className="text-xs text-zinc-500 font-sans">g</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-left font-sans">
+                <div className="p-2.5 bg-zinc-950 rounded-xl border border-zinc-850">
+                  <div className="text-zinc-500 text-[8px] uppercase tracking-wider font-bold">Resina (100)</div>
+                  <div className="text-emerald-300 font-extrabold text-sm mt-0.5">{Number(calcResina).toFixed(1)} g</div>
+                </div>
+                <div className="p-2.5 bg-zinc-950 rounded-xl border border-zinc-850">
+                  <div className="text-zinc-500 text-[8px] uppercase tracking-wider font-bold">Endurecedor (50)</div>
+                  <div className="text-teal-300 font-extrabold text-sm mt-0.5">{Number(calcEndurecedor).toFixed(1)} g</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Input Selection Panels */}
+            <div className="space-y-3 pt-2">
+              <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200">
+                <button
+                  onClick={() => setCalcMode('weight')}
+                  className={`flex-1 text-[10px] py-1.5 font-bold rounded-lg cursor-pointer transition-all ${
+                    calcMode === 'weight' ? 'bg-white text-indigo-650 shadow font-bold' : 'text-zinc-500 hover:text-zinc-800'
+                  }`}
+                >
+                  Por Peso Total
+                </button>
+                <button
+                  onClick={() => setCalcMode('dimensions')}
+                  className={`flex-1 text-[10px] py-1.5 font-bold rounded-lg cursor-pointer transition-all ${
+                    calcMode === 'dimensions' ? 'bg-white text-indigo-650 shadow font-bold' : 'text-zinc-500 hover:text-zinc-800'
+                  }`}
+                >
+                  Por Tamanho da Peça
+                </button>
+              </div>
+
+              {calcMode === 'weight' ? (
+                <div className="bg-zinc-50 p-3 border border-zinc-200 rounded-xl">
+                  <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Insira o Peso Total Desejado (Gramos):</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      className="w-full bg-white border border-zinc-200 focus:border-indigo-500 rounded-lg px-2.5 py-1.5 text-xs text-zinc-800 font-bold outline-none"
+                      value={calcWeightInput || ''}
+                      onChange={(e) => setCalcWeightInput(Math.max(0, parseFloat(e.target.value) || 0))}
+                      placeholder="Ex: 12"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 text-[10px] font-mono">g</span>
+                  </div>
+                  <span className="block text-[9px] text-zinc-450 mt-1.5">Estime o peso total baseado na peça inteira (ex: chaveiro tem 12g).</span>
+                </div>
+              ) : (
+                <div className="space-y-2.5 bg-zinc-50 p-3 border border-zinc-200 rounded-xl">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[8px] font-bold text-zinc-505 uppercase tracking-wider mb-1">Largura (mm)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        className="w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs text-zinc-805"
+                        value={calcWidth || ''}
+                        onChange={(e) => setCalcWidth(Math.max(0, parseFloat(e.target.value) || 0))}
+                        placeholder="Largura em mm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] font-bold text-zinc-505 uppercase tracking-wider mb-1">Altura / Compr. (mm)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        className="w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs text-zinc-805"
+                        value={calcHeight || ''}
+                        onChange={(e) => setCalcHeight(Math.max(0, parseFloat(e.target.value) || 0))}
+                        placeholder="Altura em mm"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[8px] font-bold text-zinc-505 uppercase tracking-wider mb-1">Espessura (mm)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        className="w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs text-zinc-805"
+                        value={calcThickness || ''}
+                        onChange={(e) => setCalcThickness(Math.max(0, parseFloat(e.target.value) || 0))}
+                        placeholder="Ex: 4"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] font-bold text-zinc-505 uppercase tracking-wider mb-1">Estilo do Molde</label>
+                      <select
+                        className="w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs text-zinc-705 cursor-pointer"
+                        value={calcShape}
+                        onChange={(e) => setCalcShape(e.target.value as 'rect' | 'oval')}
+                      >
+                        <option value="rect">Retangular / Quadrado</option>
+                        <option value="oval">Círculo / Oval</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tips Section */}
+              <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3.5 space-y-1.5 mt-2">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  Dica Essencial de Resinagem
+                </span>
+                <p className="text-[10.5px] leading-relaxed font-semibold">
+                  Primeiro coloque sempre a resina e depois o endurecedor!
+                </p>
+                <p className="text-[9.5px] text-amber-800 leading-relaxed">
+                  Colocar a resina primeiro e depois o endurecedor previne o acúmulo de sobras nas bordas e garante uma catálise perfeitamente lisa e sem estrias na cura.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 7: PREMIUM IMAGE PACK FOR KEYCHAINS */}
+        {activeTab === 'pack-imagens' && (
+          <div className="space-y-4" id="pane-pack-imagens">
+            <span className="block text-[10px] uppercase font-bold tracking-wider text-zinc-500 mb-1">Pack de Imagens Premium</span>
+            <p className="text-[10px] text-zinc-500 leading-relaxed">
+              Arraste ou clique nessas estampas profissionais de alta definição em alta qualidade para usá-las em seus chaveiros!
+            </p>
+
+            {/* ADMIN-ONLY UPLOADER INSIDE ACCOUNTS (NOT ADMIN CONSOLE OVERLAY) */}
+            {userEmail === 'admin123@resina.com' && (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3.5 space-y-3">
+                <h4 className="text-[10px] uppercase tracking-wider font-bold text-indigo-900 flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-700 animate-pulse" />
+                  Upload de Estampa (Fácil Admin)
+                </h4>
+                
+                <div>
+                  <label className="block text-[8.5px] font-bold text-zinc-550 uppercase tracking-widest mb-1">Título da Estampa</label>
+                  <input
+                    type="text"
+                    className="w-full bg-white border border-indigo-200 rounded-lg px-2 py-1 text-xs text-zinc-800 outline-none"
+                    value={packImgName}
+                    onChange={(e) => setPackImgName(e.target.value)}
+                    placeholder="Ex: Fundo Glitter Azul"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[8.5px] font-bold text-zinc-550 uppercase tracking-widest mb-1">Selecione Arquivo de Imagem</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploadingPack}
+                    className="text-xs text-zinc-600 block w-full file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-750 cursor-pointer"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (!packImgName.trim()) {
+                        const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                        setPackImgName(baseName);
+                      }
+                      setIsUploadingPack(true);
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        compressImage(reader.result as string).then((compressed) => {
+                          onAddImageToPack(packImgName || 'Estampa Premium', compressed)
+                            .then(() => {
+                              alert('Estampa adicionada ao Pack Premium com sucesso!');
+                              setPackImgName('');
+                            })
+                            .catch(err => {
+                              alert(`Erro ao fazer upload: ${err.message || err}`);
+                            })
+                            .finally(() => {
+                              setIsUploadingPack(false);
+                            });
+                        });
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* User feed grid */}
+            <div>
+              {activeItemId && activeItemHasMask && (
+                <div className="bg-emerald-50 border border-emerald-250 rounded-lg p-2 flex items-start gap-1.5 text-emerald-800 text-[9.5px] mb-3">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                  <span>Clique na foto abaixo para preencher seu molde selecionado.</span>
+                </div>
+              )}
+
+              {imagePack.length === 0 ? (
+                <div className="p-8 text-center text-zinc-400 bg-zinc-50 rounded-xl border border-zinc-200 font-mono text-[9px]">
+                  Nenhum item adicionado ao Pack ainda.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2.5" id="premium-pack-grid">
+                  {imagePack.map((img) => (
+                    <div
+                      key={img.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", img.url);
+                        e.dataTransfer.effectAllowed = "copy";
+                      }}
+                      className="group relative aspect-square bg-white rounded-xl border border-zinc-200 overflow-hidden hover:border-indigo-500 transition-all cursor-grab active:cursor-grabbing hover:shadow shadow-xs"
+                    >
+                      <button
+                        onClick={() => onSelectUploadForActiveMold(img.url)}
+                        className="w-full h-full p-0.5 cursor-pointer text-center flex flex-col justify-between"
+                        title="Aplicar estampa ao molde ativo"
+                      >
+                        <div className="flex-1 w-full h-full overflow-hidden flex items-center justify-center bg-zinc-50">
+                          <img 
+                            src={img.url} 
+                            alt={img.name} 
+                            className="max-w-full max-h-full object-cover" 
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="bg-black/40 text-white text-[8.5px] font-bold py-1 w-full truncate absolute bottom-0">
+                          {img.name}
+                        </div>
+                      </button>
+
+                      {userEmail === 'admin123@resina.com' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Excluir estampa "${img.name}" do pack?`)) {
+                              onDeleteImageFromPack(img.id)
+                                .then(() => alert('Excluído do pack!'))
+                                .catch(err => alert('Erro: ' + err.message));
+                            }
+                          }}
+                          className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded shadow hover:bg-red-700 cursor-pointer"
+                          title="Remover do pack"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 8: COURSES AND HANDOUTS OF THE PRODUCT */}
+        {activeTab === 'cursos' && (
+          <div className="space-y-4" id="pane-cursos">
+            <span className="block text-[10px] uppercase font-bold tracking-wider text-zinc-500 mb-1">Apostilas e Cursos (PDF)</span>
+            <p className="text-[10px] text-zinc-500 leading-relaxed font-sans">
+              Acesse aqui todo o material de estudo, e-books e cursos completos em formato PDF prontos para download!
+            </p>
+
+            {/* ADMIN PDF UPLOADER FORM (ACCOUNTS) */}
+            {userEmail === 'admin123@resina.com' && (
+              <div className="bg-amber-50 border border-amber-250 rounded-xl p-3.5 space-y-3">
+                <h4 className="text-[10px] uppercase tracking-wider font-bold text-amber-900 flex items-center gap-1">
+                  <Plus className="w-3.5 h-3.5 text-amber-600" />
+                  Adicionar E-book / Curso PDF
+                </h4>
+
+                <div>
+                  <label className="block text-[8.5px] font-bold text-zinc-550 uppercase tracking-widest mb-1">Nome do Arquivo PDF</label>
+                  <input
+                    type="text"
+                    className="w-full bg-white border border-amber-200 rounded-lg px-2 py-1 text-xs text-zinc-800 outline-none"
+                    value={courseName}
+                    onChange={(e) => setCourseName(e.target.value)}
+                    placeholder="Ex: Manual do Chaveiro Perfeito"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[8.5px] font-bold text-zinc-550 uppercase tracking-widest mb-1">Selecione o arquivo (.pdf)</label>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    disabled={isUploadingCourse}
+                    className="text-xs text-zinc-650 block w-full file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-700 cursor-pointer"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (!courseName.trim()) {
+                        const cleanNodeName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                        setCourseName(cleanNodeName);
+                      }
+                      
+                      const sizeFormatted = (file.size / (1024 * 1024)).toFixed(2) + " MB";
+                      setIsUploadingCourse(true);
+                      
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const rawData = reader.result as string;
+                        onAddCoursePDF(courseName || 'E-book de Resina', rawData, sizeFormatted)
+                          .then(() => {
+                            alert('Apostila PDF cadastrada com sucesso!');
+                            setCourseName('');
+                          })
+                          .catch((err) => {
+                            alert(`Falha no upload do PDF: ${err.message || err}`);
+                          })
+                          .finally(() => {
+                            setIsUploadingCourse(false);
+                          });
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Courses items rendering */}
+            <div className="space-y-3" id="courses-docs-list">
+              {courses.length === 0 ? (
+                <div className="p-8 text-center text-zinc-400 bg-zinc-50 rounded-xl border border-zinc-200 font-mono text-[9px]">
+                  Nenhuma apostila cadastrada ainda.
+                </div>
+              ) : (
+                courses.map((doc) => (
+                  <div 
+                    key={doc.id}
+                    className="p-3 bg-zinc-50 hover:bg-white border border-zinc-200 hover:border-amber-400 rounded-xl flex items-center justify-between gap-3 transition-all hover:shadow-xs"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 shrink-0 border border-amber-200">
+                        <BookOpen className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block text-[10.5px] font-bold text-zinc-700 truncate" title={doc.name}>
+                          {doc.name}
+                        </span>
+                        <span className="block text-[9px] text-zinc-450 font-mono uppercase mt-0.5">
+                          PDF • {doc.size || '1.1 MB'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a
+                        href={doc.url}
+                        download={`${doc.name}.pdf`}
+                        className="p-1 px-2.5 bg-zinc-150 hover:bg-indigo-600 hover:text-white rounded-lg text-zinc-700 text-[10.5px] font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95 border border-zinc-200 shadow-sm"
+                        title="Dê DOWNLOAD da aula / apostila"
+                      >
+                        <Download className="w-3 h-3" />
+                        Baixar
+                      </a>
+
+                      {userEmail === 'admin123@resina.com' && (
+                        <button
+                          onClick={() => {
+                            if (confirm(`Excluir documento "${doc.name}"?`)) {
+                              onDeleteCoursePDF(doc.id)
+                                .then(() => alert('Excluído!'))
+                                .catch(err => alert('Erro: ' + err.message));
+                            }
+                          }}
+                          className="p-1.5 bg-red-50 hover:bg-red-650 hover:text-white text-red-650 rounded-lg border border-red-100 transition-colors cursor-pointer"
+                          title="Remover apostila"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}

@@ -104,6 +104,8 @@ interface DatabaseSchema {
   projects: ProjectData[];
   webhookLogs: WebhookLog[];
   blockedLogs: BlockedLog[];
+  imagePack?: { id: string; name: string; url: string; createdAt: string }[];
+  courses?: { id: string; name: string; url: string; size?: string; createdAt: string }[];
 }
 
 // Generate standard date string for YYYY-MM-DD
@@ -231,7 +233,9 @@ function loadDatabase(): DatabaseSchema {
     },
     projects: [],
     webhookLogs: [],
-    blockedLogs: []
+    blockedLogs: [],
+    imagePack: [],
+    courses: []
   };
 
   try {
@@ -243,6 +247,8 @@ function loadDatabase(): DatabaseSchema {
       const projects = parsed.projects || [];
       const webhookLogs = parsed.webhookLogs || [];
       const blockedLogs = parsed.blockedLogs || [];
+      const imagePack = parsed.imagePack || [];
+      const courses = parsed.courses || [];
 
       // Ensure default users are present
       for (const email of Object.keys(defaultSchema.users)) {
@@ -256,6 +262,8 @@ function loadDatabase(): DatabaseSchema {
       parsed.projects = projects;
       parsed.webhookLogs = webhookLogs;
       parsed.blockedLogs = blockedLogs;
+      parsed.imagePack = imagePack;
+      parsed.courses = courses;
 
       fs.writeFileSync(DATABASE_FILE, JSON.stringify(parsed, null, 2));
       return parsed as DatabaseSchema;
@@ -349,6 +357,18 @@ async function forwardWebhookToClient(payload: any) {
 
 const app = express();
 let hydrationPromise: Promise<void> | null = null;
+
+// Universal CORS & Options Pre-flight handler
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE");
+  res.setHeader("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Accept, Origin, x-now-outer-path, x-forwarded-url, x-original-url");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 // Vercel Path-Reconstruction Middleware (Fixes Express routing matching under Vercel Serverless rewrites)
 app.use((req, res, next) => {
@@ -785,6 +805,97 @@ app.use((req, res, next) => {
       generated_count: user.generated_count, 
       total_generated_count: user.total_generated_count 
     });
+  });
+
+  // API: Get Image Pack
+  app.get("/api/image-pack", (req, res) => {
+    const db = loadDatabase();
+    res.json(db.imagePack || []);
+  });
+
+  // API: Add Image to Pack (Admin only)
+  app.post("/api/image-pack", async (req, res) => {
+    const { admin_email, name, url } = req.body;
+    if (admin_email !== "admin123@resina.com") {
+      return res.status(403).json({ error: "Acesso administrativo negado." });
+    }
+    if (!name || !url) {
+      return res.status(400).json({ error: "Nome e URL/Imagem são obrigatórios." });
+    }
+    
+    const db = loadDatabase();
+    if (!db.imagePack) db.imagePack = [];
+    
+    const newItem = {
+      id: "img_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now(),
+      name,
+      url,
+      createdAt: new Date().toISOString()
+    };
+    db.imagePack.push(newItem);
+    await saveDatabase(db);
+    res.json({ success: true, item: newItem });
+  });
+
+  // API: Delete Image from Pack (Admin only)
+  app.delete("/api/image-pack/:id", async (req, res) => {
+    const { id } = req.params;
+    const { admin_email } = req.query;
+    if (admin_email !== "admin123@resina.com") {
+      return res.status(403).json({ error: "Acesso administrativo negado." });
+    }
+
+    const db = loadDatabase();
+    if (!db.imagePack) db.imagePack = [];
+    db.imagePack = db.imagePack.filter(item => item.id !== id);
+    await saveDatabase(db);
+    res.json({ success: true });
+  });
+
+  // API: Get Courses / Guides list
+  app.get("/api/courses", (req, res) => {
+    const db = loadDatabase();
+    res.json(db.courses || []);
+  });
+
+  // API: Add Course / Guide PDF (Admin only)
+  app.post("/api/courses", async (req, res) => {
+    const { admin_email, name, url, size } = req.body;
+    if (admin_email !== "admin123@resina.com") {
+      return res.status(403).json({ error: "Acesso administrativo negado." });
+    }
+    if (!name || !url) {
+      return res.status(400).json({ error: "Nome e arquivo PDF são obrigatórios." });
+    }
+
+    const db = loadDatabase();
+    if (!db.courses) db.courses = [];
+    
+    const newItem = {
+      id: "pdf_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now(),
+      name,
+      url,
+      size: size || "N/A",
+      createdAt: new Date().toISOString()
+    };
+    db.courses.push(newItem);
+    await saveDatabase(db);
+    res.json({ success: true, item: newItem });
+  });
+
+  // API: Delete Course / Guide PDF (Admin only)
+  app.delete("/api/courses/:id", async (req, res) => {
+    const { id } = req.params;
+    const { admin_email } = req.query;
+    if (admin_email !== "admin123@resina.com") {
+      return res.status(403).json({ error: "Acesso administrativo negado." });
+    }
+
+    const db = loadDatabase();
+    if (!db.courses) db.courses = [];
+    db.courses = db.courses.filter(item => item.id !== id);
+    await saveDatabase(db);
+    res.json({ success: true });
   });
 
   // Vite preview compiler middleware for Dev environment, and static fallback client in Production environment

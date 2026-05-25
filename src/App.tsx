@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, FileText, Layers, AlertTriangle, Plus, Layout, 
-  HelpCircle, Image as ImageIcon, CheckCircle2, ChevronRight 
+  HelpCircle, Image as ImageIcon, CheckCircle2, ChevronRight, ChevronLeft 
 } from 'lucide-react';
 import { EditorItem, Project } from './types';
 import HeaderToolbar from './components/HeaderToolbar';
@@ -68,6 +68,92 @@ export default function App() {
   // Upload/Meus Moldes Lists
   const [uploads, setUploads] = useState<string[]>([]);
   const [customMolds, setCustomMolds] = useState<{ id: string; name: string; maskUrl: string }[]>([]);
+
+  // Collapse controllers for responsive sidebars with ease of access on mobile
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState<boolean>(true);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState<boolean>(true);
+
+  // Custom interactive pack of images & courses state
+  const [imagePack, setImagePack] = useState<{ id: string; name: string; url: string; createdAt: string }[]>([]);
+  const [courses, setCourses] = useState<{ id: string; name: string; url: string; size?: string; createdAt: string }[]>([]);
+
+  const fetchImagePackAndCourses = () => {
+    fetch('/api/image-pack')
+      .then(res => res.json())
+      .then(data => setImagePack(Array.isArray(data) ? data : []))
+      .catch(err => console.error("Error loading image pack:", err));
+
+    fetch('/api/courses')
+      .then(res => res.json())
+      .then(data => setCourses(Array.isArray(data) ? data : []))
+      .catch(err => console.error("Error loading courses:", err));
+  };
+
+  useEffect(() => {
+    if (userEmail) {
+      fetchImagePackAndCourses();
+    }
+  }, [userEmail]);
+
+  const handleAddImageToPack = async (name: string, url: string) => {
+    try {
+      const res = await fetch('/api/image-pack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_email: userEmail, name, url })
+      });
+      const data = await safeJson(res);
+      fetchImagePackAndCourses();
+      return data;
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const handleDeleteImageFromPack = async (id: string) => {
+    try {
+      const res = await fetch(`/api/image-pack/${id}?admin_email=${encodeURIComponent(userEmail || '')}`, {
+        method: 'DELETE'
+      });
+      const data = await safeJson(res);
+      fetchImagePackAndCourses();
+      return data;
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const handleAddCoursePDF = async (name: string, url: string, size?: string) => {
+    try {
+      const res = await fetch('/api/courses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_email: userEmail, name, url, size })
+      });
+      const data = await safeJson(res);
+      fetchImagePackAndCourses();
+      return data;
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const handleDeleteCoursePDF = async (id: string) => {
+    try {
+      const res = await fetch(`/api/courses/${id}?admin_email=${encodeURIComponent(userEmail || '')}`, {
+        method: 'DELETE'
+      });
+      const data = await safeJson(res);
+      fetchImagePackAndCourses();
+      return data;
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
 
   // Clipboard for Ctrl+C / Ctrl+V
   const [clipboardItem, setClipboardItem] = useState<EditorItem | null>(null);
@@ -868,24 +954,44 @@ export default function App() {
       {/* Main workspace frame */}
       <div className="flex flex-1 overflow-hidden relative">
         
-        {/* Left Library sidebar */}
-        <SidebarMolds
-          onAddText={handleAddText}
-          onAddMold={handleAddMold}
-          onAddLetterMold={handleAddLetterMold}
-          onAddNumberMold={handleAddNumberMold}
-          onAddTextMold={handleAddTextMold}
-          uploads={uploads}
-          onUploadImage={handleUploadImage}
-          onSelectUploadForActiveMold={handleSelectUploadForActiveMold}
-          activeItemId={selectedItemId}
-          activeItemHasMask={activeHasMask}
-          customMolds={customMolds}
-          onAddCustomMoldToPage={handleAddCustomMoldToPage}
-          onDeleteCustomMold={handleDeleteCustomMold}
-          onDeleteUpload={handleDeleteUpload}
-          onAddCustomMold={handleAddCustomMold}
-        />
+        {/* Left Library sidebar with responsive and collapsible styling */}
+        <div className={`transition-all duration-300 flex select-none shrink-0 relative z-30 h-full ${leftSidebarOpen ? 'w-80' : 'w-0'}`}>
+          <div className={`w-80 h-full transition-transform duration-300 ${leftSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <SidebarMolds
+              onAddText={handleAddText}
+              onAddMold={handleAddMold}
+              onAddLetterMold={handleAddLetterMold}
+              onAddNumberMold={handleAddNumberMold}
+              onAddTextMold={handleAddTextMold}
+              uploads={uploads}
+              onUploadImage={handleUploadImage}
+              onSelectUploadForActiveMold={handleSelectUploadForActiveMold}
+              activeItemId={selectedItemId}
+              activeItemHasMask={activeHasMask}
+              customMolds={customMolds}
+              onAddCustomMoldToPage={handleAddCustomMoldToPage}
+              onDeleteCustomMold={handleDeleteCustomMold}
+              onDeleteUpload={handleDeleteUpload}
+              onAddCustomMold={handleAddCustomMold}
+              userEmail={userEmail}
+              imagePack={imagePack}
+              courses={courses}
+              onAddImageToPack={handleAddImageToPack}
+              onDeleteImageFromPack={handleDeleteImageFromPack}
+              onAddCoursePDF={handleAddCoursePDF}
+              onDeleteCoursePDF={handleDeleteCoursePDF}
+            />
+          </div>
+          
+          {/* Floating toggle button for Left Panel */}
+          <button
+            onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+            className="absolute -right-3.5 top-1/2 -translate-y-1/2 bg-white border border-zinc-200 rounded-full p-1 shadow-md hover:bg-zinc-50 z-50 text-zinc-650 transition-all hover:scale-105 active:scale-95 cursor-pointer no-print flex items-center justify-center w-7 h-7"
+            title={leftSidebarOpen ? "Ocultar Biblioteca" : "Mostrar Biblioteca"}
+          >
+            {leftSidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+        </div>
 
         {/* Central interactive sheet canvas area */}
         <div className="flex-1 flex flex-col overflow-hidden relative">
@@ -905,16 +1011,29 @@ export default function App() {
           />
         </div>
 
-        {/* Right context inspector sidebar */}
-        <InspectorPanel
-          selectedItem={activeItem}
-          onUpdateItem={handleUpdateItem}
-          onDuplicateItem={handleDuplicateItem}
-          onDeleteItem={handleDeleteItem}
-          onAlignItem={handleAlignItem}
-          onLayerChange={handleLayerChange}
-          shapeBBoxes={shapeBBoxes}
-        />
+        {/* Right context inspector sidebar with collapsible state */}
+        <div className={`transition-all duration-300 flex select-none shrink-0 relative z-30 h-full ${rightSidebarOpen ? 'w-80' : 'w-0'}`}>
+          {/* Floating toggle button for Right Panel */}
+          <button
+            onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+            className="absolute -left-3.5 top-1/2 -translate-y-1/2 bg-white border border-zinc-200 rounded-full p-1 shadow-md hover:bg-zinc-50 z-50 text-zinc-650 transition-all hover:scale-105 active:scale-95 cursor-pointer no-print flex items-center justify-center w-7 h-7"
+            title={rightSidebarOpen ? "Ocultar Ajustes" : "Mostrar Ajustes"}
+          >
+            {rightSidebarOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+
+          <div className={`w-80 h-full transition-transform duration-300 ${rightSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <InspectorPanel
+              selectedItem={activeItem}
+              onUpdateItem={handleUpdateItem}
+              onDuplicateItem={handleDuplicateItem}
+              onDeleteItem={handleDeleteItem}
+              onAlignItem={handleAlignItem}
+              onLayerChange={handleLayerChange}
+              shapeBBoxes={shapeBBoxes}
+            />
+          </div>
+        </div>
 
       </div>
     </div>
